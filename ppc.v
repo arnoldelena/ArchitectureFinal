@@ -93,7 +93,16 @@ module main();
     queue[pointer] = memReadData0[0:31];
     queue[pointer + 1] = memReadData0[32:63];
 
+    /**********/
+    /* Update */
+    /**********/
+
+    wire[0:5] nextPointer;
+    wire[0:63] pcPlus4 = pc + 4;
+    wire[0:63] nextpc = pcPlus4;
     always @(posedge clk) begin
+        pointer <= nextPointer;
+        pc <= nextpc;
         state <= 1;
     end
 
