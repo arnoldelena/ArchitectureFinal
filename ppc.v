@@ -18,7 +18,6 @@ module main();
     reg[0:31] cr = 0;
     reg[0:31] xer = 0;
 
-//    reg[0:2] state = `F;
     reg state = 0;
 
     /********************/
