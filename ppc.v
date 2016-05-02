@@ -167,7 +167,7 @@ module main();
     wire D0readA = D0isSc ? 0 : (DisOr | DisMTSpr | DisMTCrf) ? Ds : Dra;
     wire D0readB = D0isSc ? 3 : DisStd ? Ds : Drb;
 
-    wire DreadA = D0read ? D0readA : D1read ? D1readA : 0;
+    wire DreadA = D0read ? D0readA : ;
     wire[0:4] DregA;
 
     wire DreadB = D0read2 ? D0readB : ;
