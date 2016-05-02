@@ -214,9 +214,45 @@ module main();
 
     reg[0:31] WB0inst = 0;
 
+    wire[0:5] WB0opcode = WB0inst[0:5];
+    wire[0:4] WB0rt = WB0inst[6:10];
+    wire[0:4] WB0ra = WB0inst[11:15];
+    wire[0:7] WB0lev = WB0inst[20:26];
+    wire[0:8] WB0xop9 = WB0inst[22:30];
+    wire[0:9] WB0xop10 = WB0inst[21:30];
+    wire[0:9] WB0spr = {WB0inst[16:20],WB0inst[11:15]};
+    wire[0:63] WB0si = {{48{WB0inst[16]}},WB0inst[16:31]};
+
+    wire WB0isOr = (WB0opcode == 31) & (WB0xop10 == 444);
+    wire WB0isAdd = (WB0opcode == 31) & (WB0xop9 == 266);
+    wire WB0isMFSpr = (WB0opcode == 31) & (WB0xop10 == 339) & ((WB0spr == 1) || (WB0spr == 8) || (WB0spr == 9));
+    wire WB0isLd = (WB0opcode == 58) & (WB0inst[30:31] == 0);
+    wire WB0isLdu = (WB0opcode == 58) & (WB0inst[30:31] == 1) & (WB0ra != 0) & (WB0ra != WB0rt);
+    wire WB0isStd = WB0opcode == 62;
+    wire WB0isAddi = WB0opcode == 14;
+    wire WB0isSc = (WB0opcode == 17) & ((WB0lev == 0) | (WB0lev == 1)) & WB0inst[30];
+
     // WB1
 
     reg[0:31] WB1inst = 0;
+
+    wire[0:5] WB1opcode = WB1inst[0:5];
+    wire[0:4] WB1rt = WB1inst[6:10];
+    wire[0:4] WB1ra = WB1inst[11:15];
+    wire[0:7] WB1lev = WB1inst[20:26];
+    wire[0:8] WB1xop9 = WB1inst[22:30];
+    wire[0:9] WB1xop10 = WB1inst[21:30];
+    wire[0:9] WB1spr = {WB1inst[16:20],WB1inst[11:15]};
+    wire[0:63] WB1si = {{48{WB1inst[16]}},WB1inst[16:31]};
+
+    wire WB1isOr = (WB1opcode == 31) & (WB1xop10 == 444);
+    wire WB1isAdd = (WB1opcode == 31) & (WB1xop9 == 266);
+    wire WB1isMFSpr = (WB1opcode == 31) & (WB1xop10 == 339) & ((WB1spr == 1) || (WB1spr == 8) || (WB1spr == 9));
+    wire WB1isLd = (WB1opcode == 58) & (WB1inst[30:31] == 0);
+    wire WB1isLdu = (WB1opcode == 58) & (WB1inst[30:31] == 1) & (WB1ra != 0) & (WB1ra != WB1rt);
+    wire WB1isStd = WB1opcode == 62;
+    wire WB1isAddi = WB1opcode == 14;
+    wire WB1isSc = (WB1opcode == 17) & ((WB1lev == 0) | (WB1lev == 1)) & WB1inst[30];
 
     /**********/
     /* Update */
