@@ -10,17 +10,17 @@ wire isHazard = (D0ReadArg1==D1WriteArg1|D0ReadArg2==D1WriteArg1|
 					D0ReadArg1==D1WriteArg2|D0ReadArg2==D1WriteArg2|
 					D1ReadArg1==D0WriteArg2|D1ReadArg2==D0WriteArg2)?1:0;
 
-wire [0:4]D0WriteArg1 = (D0isAdd | D0isAddi | D0isLd | D0isLdu) ? rt0:
+wire [0:5]D0WriteArg1 = (D0isAdd | D0isAddi | D0isLd | D0isLdu) ? rt0:
 						(D0isOr) ? ra0:
-						100;
+						63;
 
-wire [0:4]D1WriteArg1 = (D1isAdd | D1isAddi | D1isLd | D1isLdu) ? rt1:
+wire [0:5]D1WriteArg1 = (D1isAdd | D1isAddi | D1isLd | D1isLdu) ? rt1:
 						(D1isOr) ? ra1:
-						100;
+						63;
 
-wire [0:4]D0WriteArg2 = (D0isLd | D0isLdu) ? ra0:100;
+wire [0:5]D0WriteArg2 = (D0isLd | D0isLdu) ? ra0:63;
 
-wire [0:4]D1WriteArg2 = (D1isLd | D1isLdu) ? ra1:100;
+wire [0:5]D1WriteArg2 = (D1isLd | D1isLdu) ? ra1:63;
 
 
 wire isSpecHazard = (D0isAdd & D1isBc | D0isAdd & D1isBclr |
