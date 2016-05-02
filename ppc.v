@@ -96,7 +96,7 @@ module main();
 
     // D0
 
-    reg[0:31] D0inst = 0;
+    wire[0:31] D0inst = queue[head];
 
     wire[0:5] D0opcode = D0inst[0:5];
     wire[0:4] D0rs = D0inst[6:10];
@@ -120,7 +120,7 @@ module main();
 
     // D1
 
-    reg[0:31] D1inst = 0;
+    reg[0:31] D1inst = queue[head+1];
 
     wire[0:5] D1opcode = D1inst[0:5];
     wire[0:4] D1rs = D1inst[6:10];
@@ -164,11 +164,11 @@ module main();
     wire D1read1 = D1isLd | D1isLdu | D1isAddi1 | D1isAdd1 | D1isOr1 | D1isMTSpr | D1isMTCrf;
     wire D1read2 = D1isStd | D1isAdd2 | D1isOr2 | D1isSc;
 
-    wire D0readA = D0isSc ? 0 : (D0isOr | D0isMTSpr | D0isMTCrf) ? D0s : D0ra;
-    wire D0readB = D0isSc ? 3 : D0isStd ? D0s : D0rb;
+    wire D0readA = D0isSc ? 0 : (D0isOr | D0isMTSpr | D0isMTCrf) ? D0rs : D0ra;
+    wire D0readB = D0isSc ? 3 : D0isStd ? D0rs : D0rb;
 
-    wire D1readA = D1isSc ? 0 : (D1isOr | D1isMTSpr | D1isMTCrf) ? D1s : D1ra;
-    wire D1readB = D1isSc ? 3 : D1isStd ? D1s : D1rb;
+    wire D1readA = D1isSc ? 0 : (D1isOr | D1isMTSpr | D1isMTCrf) ? D1rs : D1ra;
+    wire D1readB = D1isSc ? 3 : D1isStd ? D1rs : D1rb;
 
     wire DreadA = D0read ? D0readA : ;
     wire[0:4] DregA;
@@ -176,7 +176,33 @@ module main();
     wire DreadB = D0read2 ? D0readB : ;
     wire[0:4] DregB;
  
-   /*wire Dread0 = DisLd | DisLdu | DisStd | DisAddi | DisAdd | DisOr | DisSc | DisMTSpr | DisMTCrf;
+    wire D0readAEQXwriteA = D0readA == XwriteA;
+    wire D0readAUXwriteA = D0readAEQXwriteA & Xwrite0;
+    wire D0readAEQXwriteB = D0readB == XwriteB;
+    wire D0readAUXwriteB = D0readAEQXwriteB & Xwrite1;
+
+    wire D0readAEQWBwriteA = D0readA == WBwriteA;
+    wire D0readAUWBwriteA = D0readAEQWBwriteA & WBwrite0;
+    wire D0readAEQWBwriteB = D0readB == WBwriteB;
+    wire D0readAUWBwriteB = D0readAEQXWBriteB & WBwrite1;
+
+    wire D1readAEQD0writeA = D1readA == D0writeA;
+    wire D1readAUD0writeA = D1readAEQXwriteA & D0write0;
+    wire D1readAED0QXwriteB = D1readB == D0writeB;
+    wire D1readAUD0writeB = D1readAEQXwriteB & D0write1;
+
+    wire D1readAEQXwriteA = D1readA == XwriteA;
+    wire D1readAUXwriteA = D1readAEQXwriteA & Xwrite0;
+    wire D1readAEQXwriteB = D1readB == XwriteB;
+    wire D1readAUXwriteB = D1readAEQXwriteB & Xwrite1;
+
+    wire D1readAEQWBwriteA = D1readA == WBwriteA;
+    wire D1readAUWBwriteA = D1readAEQWBwriteA & WBwrite0;
+    wire D1readAEQWBwriteB = D1readB == WBwriteB;
+    wire D1readAUWBwriteB = D1readAEQXWBriteB & WBwrite1;
+
+/*
+    wire Dread0 = DisLd | DisLdu | DisStd | DisAddi | DisAdd | DisOr | DisSc | DisMTSpr | DisMTCrf;
     wire Dread1 = DisStd | DisAdd | DisOr | DisSc;
 
     wire[0:4] Dreg0 = DisSc ? 0 : (DisOr | DisMTSpr | DisMTCrf) ? Drs : Dra;
@@ -204,7 +230,8 @@ module main();
     wire DtargetBUWB1 = DtargetBEQWB1 & WBwrite1;
 
     reg[0:3] DvaState = 0;
-    reg[0:3] DvbState = 0;*/
+    reg[0:3] DvbState = 0;
+*/
 
     /************/
     /* Exectute */
@@ -333,8 +360,8 @@ module main();
         WBinst0 <= Xinst0;
         Xinst1 <= Dinst1;
         Xinst0 <= Dinst0;
-        Dinst1 <= queue[head + 1];
-        Dinst0 <= queue[head];
+        // Dinst1 <= queue[head + 1];
+        // Dinst0 <= queue[head];
         head <= nextHead;
         tail <= nextTail;
         pc <= nextpc;
