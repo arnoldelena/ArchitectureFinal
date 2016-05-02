@@ -42,12 +42,12 @@ module main();
     /* regs */
     /********/
 
-    wire regReadEn0;
-    wire [0:4]regReadAddr0;
+    wire regReadEn0 = DreadA;
+    wire [0:4]regReadAddr0 = DregA;
     wire [0:63]regReadData0;
 
-    wire regReadEn1;
-    wire [0:4]regReadAddr1;
+    wire regReadEn1 = DreadB;
+    wire [0:4]regReadAddr1 = DregB;
     wire [0:63]regReadData1;
 
     wire regWriteEn0;
@@ -141,6 +141,64 @@ module main();
     wire D1isStd = D1opcode == 62;
     wire D1isAddi = D1opcode == 14;
     wire D1isSc = (D1opcode == 17) & ((D1lev == 0) | (D1lev == 1)) & D1inst[30];
+
+    // Data Hazard
+
+    wire D0isAddi1 = D0isAddi & (D0ra != 0);
+    wire D0isAdd1 = D0isAdd & (D0ra == D0rb);
+    wire D0isAdd2 = D0isAdd & (D0ra != D0rb);
+    wire D0isOr1 = D0isAdd & (D0rs == D0rb);
+    wire D0isOr2 = D0isAdd & (D0rs != D0rb);
+
+    wire D1isAddi1 = D1isAddi & (D1ra != 0);
+    wire D1isAdd1 = D1isAdd & (D1ra == D1rb);
+    wire D1isAdd2 = D1isAdd & (D1ra != D1rb);
+    wire D1isOr1 = D1isAdd & (D1rs == D1rb);
+    wire D1isOr2 = D1isAdd & (D1rs != D1rb);
+
+    wire D0read = D0isLd | D0isLdu | D0isStd | D0isAddi | D0isAdd | D0isOr | D0isSc | D0isMTSpr | D0isMTCrf;
+    wire D0read1 = D0isLd | D0isLdu | D0isAddi1 | D0isAdd1 | D0isOr1 | D0isMTSpr | D0isMTCrf;
+    wire D0read2 = D0isStd| D0isAdd2 | D0isOr2 | D0isSc;
+
+    wire D1read = D1isLd | D1isLdu | D1isStd | D1isAddi | D1isAdd | D1isOr | D1isSc | D1isMTSpr | D1isMTCrf;
+    wire D1read1 = D1isLd | D1isLdu | D1isAddi1 | D1isAdd1 | D1isOr1 | D1isMTSpr | D1isMTCrf;
+    wire D1read2 = D1isStd | D1isAdd2 | D1isOr2 | D1isSc;
+
+    wire DreadA;
+    wire[0:4] DregA;
+
+    wire DreadB;
+    wire[0:4] DregB;
+ 
+   /*wire Dread0 = DisLd | DisLdu | DisStd | DisAddi | DisAdd | DisOr | DisSc | DisMTSpr | DisMTCrf;
+    wire Dread1 = DisStd | DisAdd | DisOr | DisSc;
+
+    wire[0:4] Dreg0 = DisSc ? 0 : (DisOr | DisMTSpr | DisMTCrf) ? Drs : Dra;
+
+    wire DtargetAEQ0 = Dreg0 == Xwrite0Target;
+    wire DtargetAU0 = DtargetAEQ0 & Xwrite0;
+    wire DtargetAEQ1 = Dreg0 == Xra;
+    wire DtargetAU1 = DtargetAEQ1 & Xwrite1;
+
+    wire DtargetAEQWB0 = Dreg0 == WBwrite0Target;
+    wire DtargetAUWB0 = DtargetAEQWB0 & WBwrite0;
+    wire DtargetAEQWB1 = Dreg0 == WBra;
+    wire DtargetAUWB1 = DtargetAEQWB1 & WBwrite1;
+
+    wire[0:4] Dreg1 = DisSc ? 3 : DisStd ? Drs : Drb;
+
+    wire DtargetBEQ0 = Dreg1 == Xwrite0Target;
+    wire DtargetBU0 = DtargetBEQ0 & Xwrite0;
+    wire DtargetBEQ1 = Dreg1 == Xra;
+    wire DtargetBU1 = DtargetBEQ1 & Xwrite1;
+
+    wire DtargetBEQWB0 = Dreg1 == WBwrite0Target;
+    wire DtargetBUWB0 = DtargetBEQWB0 & WBwrite0;
+    wire DtargetBEQWB1 = Dreg1 == WBra;
+    wire DtargetBUWB1 = DtargetBEQWB1 & WBwrite1;
+
+    reg[0:3] DvaState = 0;
+    reg[0:3] DvbState = 0;*/
 
     /************/
     /* Exectute */
