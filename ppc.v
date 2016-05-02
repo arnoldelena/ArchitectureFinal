@@ -164,8 +164,11 @@ module main();
     wire D1read1 = D1isLd | D1isLdu | D1isAddi1 | D1isAdd1 | D1isOr1 | D1isMTSpr | D1isMTCrf;
     wire D1read2 = D1isStd | D1isAdd2 | D1isOr2 | D1isSc;
 
-    wire D0readA = D0isSc ? 0 : (DisOr | DisMTSpr | DisMTCrf) ? Ds : Dra;
-    wire D0readB = D0isSc ? 3 : DisStd ? Ds : Drb;
+    wire D0readA = D0isSc ? 0 : (D0isOr | D0isMTSpr | D0isMTCrf) ? D0s : D0ra;
+    wire D0readB = D0isSc ? 3 : D0isStd ? D0s : D0rb;
+
+    wire D1readA = D1isSc ? 0 : (D1isOr | D1isMTSpr | D1isMTCrf) ? D1s : D1ra;
+    wire D1readB = D1isSc ? 3 : D1isStd ? D1s : D1rb;
 
     wire DreadA = D0read ? D0readA : ;
     wire[0:4] DregA;
