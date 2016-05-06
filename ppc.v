@@ -394,8 +394,8 @@ module main();
     /* Update */
     /**********/
 
-    wire stopFetch = (head - tail) < 2;
-    wire[0:5] nextHead = canParallel ? head + 2 : head + 1;
+    wire stopFetch = state & (head - tail) < 2;
+    wire[0:5] nextHead = ~state ? head : canParallel ? head + 2 : head + 1;
     wire[0:5] nextTail = stopFetch ? tail : state ? tail + 2 : tail;
     wire[0:63] pcPlus4 = pc + 4;
     wire[0:63] nextpc = stopFetch ? pc : pcPlus4;
