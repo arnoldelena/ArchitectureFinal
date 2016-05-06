@@ -418,8 +418,10 @@ module main();
                 $display("%x",WB1vb);
             end
         end
-        queue[tail + 1] = fetch[32:63];
-        queue[tail] = fetch[0:31];
+	if(!stopFetch) begin
+            queue[tail + 1] = fetch[32:63];
+            queue[tail] = fetch[0:31];
+	end
         WB1inst <= X1inst;
         WB0inst <= X0inst;
         X1inst <= D1inst;
