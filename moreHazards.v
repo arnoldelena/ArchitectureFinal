@@ -1,0 +1,79 @@
+    // D0 reads X writes
+    wire D0readAEQXwriteA = D0readA == XwriteA;
+    wire D0readAUXwriteA = D0readAEQXwriteA & Xwrite0;
+    wire D0readAEQXwriteB = D0readB == XwriteB;
+    wire D0readAUXwriteB = D0readAEQXwriteB & Xwrite1;
+
+    // D0 reads X reads
+    wire D0readAEQXreadA = D0readA == XreadA;
+    wire D0readARXreadA = D0readAEQXreadA & Xread0;
+    wire D0readAEQXreadB = D0readA == XreadB;
+    wire D0readARXreadB = D0readAEQXreadB & Xread1;
+    wire D0readBEQXreadA = D0readB == XreadA;
+    wire D0readBRXreadA = D0readBEQXreadA & Xread0;
+    wire D0readBEQXreadB = D0readB == XreadB;
+    wire D0readBRXreadB = D0readBEQXreadB & Xread1;
+
+    // D0 reads WB writes
+    wire D0readAEQWBwriteA = D0readA == WBwriteA;
+    wire D0readAUWBwriteA = D0readAEQWBwriteA & WBwrite0;
+    wire D0readAEQWBwriteB = D0readB == WBwriteB;
+    wire D0readAUWBwriteB = D0readAEQXWBriteB & WBwrite1;
+
+    // D0 reads WB reads
+    wire D0readAEQWBreadA = D0readA == WBreadA;
+    wire D0readARWBreadA = D0readAEQWBreadA & WBread0;
+    wire D0readAEQWBreadB = D0readA == WBreadB;
+    wire D0readARWBreadB = D0readAEQWBreadB & WBread1;
+    wire D0readBEQWBreadA = D0readB == WBreadA;
+    wire D0readBRWBreadA = D0readBEQWBreadA & WBread0;
+    wire D0readBEQWBreadB = D0readB == WBreadB;
+    wire D0readBRWBreadB = D0readBEQWBreadB & WBread1;
+
+    // D1 reads D0 writes
+    wire D1readAEQD0writeA = D1readA == D0writeA;
+    wire D1readAUD0writeA = D1readAEQXwriteA & D0write0;
+    wire D1readAED0QXwriteB = D1readB == D0writeB;
+    wire D1readAUD0writeB = D1readAEQXwriteB & D0write1;
+
+    // D1 reads D0 reads
+    wire D1readAEQD0readA = D1readA == D0readA;
+    wire D1readARD0readA = D1readAEQD0readA & D0read0;
+    wire D1readAEQD0readB = D1readA == D0readB;
+    wire D1readARD0readB = D1readAEQD0readB & D0read1;
+    wire D1readBEQD0readA = D1readB == D0readA;
+    wire D1readBRD0readA = D1readBEQD0readA & D0read0;
+    wire D1readBEQD0readB = D1readB == D0readB;
+    wire D1readBRD0readB = D1readBEQD0readB & D0read1;
+
+    // D1 reads X writes
+    wire D1readAEQXwriteA = D1readA == XwriteA;
+    wire D1readAUXwriteA = D1readAEQXwriteA & Xwrite0;
+    wire D1readAEQXwriteB = D1readB == XwriteB;
+    wire D1readAUXwriteB = D1readAEQXwriteB & Xwrite1;
+
+    // D1 reads X reads
+    wire D1readAEQXreadA = D1readA == XreadA;
+    wire D1readARXreadA = D1readAEQXreadA & Xread0;
+    wire D1readAEQXreadB = D1readA == XreadB;
+    wire D1readARXreadB = D1readAEQXreadB & Xread1;
+    wire D1readBEQXreadA = D1readB == XreadA;
+    wire D1readBRXreadA = D1readBEQXreadA & Xread0;
+    wire D1readBEQXreadB = D1readB == XreadB;
+    wire D1readBRXreadB = D1readBEQXreadB & Xread1;
+
+    // D1 reads WB writes
+    wire D1readAEQWBwriteA = D1readA == WBwriteA;
+    wire D1readAUWBwriteA = D1readAEQWBwriteA & WBwrite0;
+    wire D1readAEQWBwriteB = D1readB == WBwriteB;
+    wire D1readAUWBwriteB = D1readAEQXWBriteB & WBwrite1;
+
+    // D1 reads WB reads
+    wire D1readAEQWBreadA = D1readA == WBreadA;
+    wire D1readARWBreadA = D1readAEQWBreadA & WBread0;
+    wire D1readAEQWBreadB = D1readA == WBreadB;
+    wire D1readARWBreadB = D1readAEQWBreadB & WBread1;
+    wire D1readBEQWBreadA = D1readB == WBreadA;
+    wire D1readBRWBreadA = D1readBEQWBreadA & WBread0;
+    wire D1readBEQWBreadB = D1readB == WBreadB;
+    wire D1readBRWBreadB = D1readBEQWBreadB & WBread1;
