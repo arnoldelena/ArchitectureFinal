@@ -7,7 +7,7 @@ module main();
     end
 
     wire clk;
-    wire halt;
+    wire halt = (WB0isSc & (WB0va == 1)) | (WB1isSc & (WB1va == 1));
 
     clock clock0(halt,clk);
 
@@ -233,6 +233,51 @@ module main();
     reg[0:3] DvbState = 0;
 */
 
+    wire isHazard = (D0readA==D1writeA|D0ReadArg2==D1WriteArg1|
+					D1ReadArg1==D0WriteArg1|D1ReadArg2==D0WriteArg1|
+					D0ReadArg1==D1WriteArg2|D0ReadArg2==D1WriteArg2|
+					D1ReadArg1==D0WriteArg2|D1ReadArg2==D0WriteArg2)?1:0;
+
+    wire [0:5]D0WriteArg1 = (D0isAdd | D0isAddi | D0isLd | D0isLdu) ? rt0:
+						(D0isOr) ? ra0:
+						63;
+
+    wire [0:5]D1WriteArg1 = (D1isAdd | D1isAddi | D1isLd | D1isLdu) ? rt1:
+						(D1isOr) ? ra1:
+						63;
+
+    wire [0:5]D0WriteArg2 = (D0isLd | D0isLdu) ? ra0:63;
+
+    wire [0:5]D1WriteArg2 = (D1isLd | D1isLdu) ? ra1:63;
+
+
+    wire isSpecHazard = (D0isAdd & D1isBc | D0isAdd & D1isBclr |
+					D0isOr & D1isBc | D0isOr & D1isBclr |
+					D1isAdd & D0isBc | D1isAdd & D0isBclr |
+					D1isOr & D0isBc | D1isOr & D0isBclr |
+					D0isBclr & D1isB | D0isBclr & D1isBc | D0isBclr & D1isBclr |
+					D1isBclr & D0isB | D1isBclr & D0isBc | D1isBclr & D0isBclr) ? 1:0;
+
+    //valid bits, to know how many registers the instructions takes
+    wire D0reg0valid = (D0isAdd|D0isOr|(D0isAddi|D0isLd)&(D0ra!=0)|D0isSc|D0isLdu);
+    wire D0reg1valid = (D0isAdd|D0isOr|D0isSc);
+
+    wire D1reg0valid = (D1isAdd|D1isOr|(D1isAddi|D1isLd)&(D1ra!=0)|D1isSc|D1isLdu);
+    wire D1reg1valid = (D1isAdd|D1isOr|D0isSc);
+
+    //do not take into acount if the two instructions are reading/writing to same register
+    wire underRegReadLimit = (D0reg0valid+D0reg1valid+D1reg0valid+D1reg1valid)<=2;
+
+    wire underRegWriteLimit = ~((D0isLdu|D1isLdu)&(D0isAdd|D0isAddi|D0isOr|D0isLd|D1isAdd|D1isAddi|D1isOr|D1isLd)); 
+
+    wire canParallel = underRegReadLimit & underRegWriteLimit;
+
+    wire [0:6] Dinst0reg0 = D0isOr?D0rs:
+                            D0isSc?0:
+                            D0ra;
+
+    wire [0:6] Dinst0reg1 = D0isSc?3:D0rb;
+
     /************/
     /* Exectute */
     /************/
@@ -349,17 +394,38 @@ module main();
     /* Update */
     /**********/
 
+    wire stopFetch = (head - tail) < 2;
     wire[0:5] nextHead = canParallel ? head + 2 : head + 1;
-    wire[0:5] nextTail = state ? tail + 2 : tail;
+    wire[0:5] nextTail = stopFetch ? tail : state ? tail + 2 : tail;
     wire[0:63] pcPlus4 = pc + 4;
-    wire[0:63] nextpc = pcPlus4;
+    wire[0:63] nextpc = stopFetch ? pc : pcPlus4;
     always @(posedge clk) begin
+        if (WB0isSc) begin
+            if (WB0va == 0) begin
+                $display("%c",WB0vb[56:63]);
+            end else if (WB0va == 1) begin
+                $finish;
+            end else if (WB0va == 2) begin
+                $display("%x",WB0vb);
+            end
+        end
+        if (WB1isSc) begin
+            if (WB1va == 0) begin
+                $display("%c",WB1vb[56:63]);
+            end else if (WB1va == 1) begin
+                $finish;
+            end else if (WB1va == 2) begin
+                $display("%x",WB1vb);
+            end
+        end
         queue[tail + 1] = fetch[32:63];
         queue[tail] = fetch[0:31];
-        WBinst1 <= Xinst1;
-        WBinst0 <= Xinst0;
-        Xinst1 <= Dinst1;
-        Xinst0 <= Dinst0;
+        WB1inst <= X1inst;
+        WB0inst <= X0inst;
+        X1inst <= D1inst;
+        if (~isHazard & !isSpecHazard & canParallel) begin
+            X0inst <= Dinst;
+        end
         // Dinst1 <= queue[head + 1];
         // Dinst0 <= queue[head];
         head <= nextHead;
