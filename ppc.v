@@ -15,7 +15,7 @@ module main();
     reg[0:63] lr = 0;
     reg[0:63] ctr = 0;
     reg[0:31] cr = 0;
-    reg[0:31] xer = 0;
+    reg[0:31] xer = 0; 
 
     reg state = 0;
 
@@ -157,6 +157,20 @@ module main();
                         D1isSc?0:
                         D1ra;
     wire[0:4] D1readB = D1isSc?3:D1rb;
+
+    wire isBranching = (D0isB|D1isB)|(((D0isBc|D1isBc)|(D0isBclr|D1isBclr)) & (D0ctrOk|D1ctrOk) & (D0condOk|D1condOk);
+    wire D0ctrOk = D0inst[8]|((ctr-1 != 0)^D0inst[9]);
+    wire D1ctrOk = D1inst[8]|((ctr-1 != 0)^D1inst[9]);
+    wire D0condOk = x_bo[0]|(cr[x_bi]==x_bo[1]);
+    wire [0:63] branchTarget = x_isBc?bcTarget:
+                        x_isB?bTarget:
+                        x_isBclr?bclrTarget:
+                        0;
+
+    wire [0:63] bTarget = x_aa?{{38{x_li[0]}},x_li,2'b00}:{{33{x_li[0]}},x_li,2'b00}+pc-8;
+    wire [0:63] bclrTarget = {lr[0:61],2'b00};
+    wire [0:63] bcTarget = x_aa?{{48{x_bd[0]}},x_bd,2'b00}:{{48{x_bd[0]}},x_bd,2'b00}+pc-8;
+
  
     // Data Hazard/Forwarding??
 
@@ -395,6 +409,10 @@ module main();
     wire X0isStd = X0opcode == 62;
     wire X0isSc = (X0opcode == 17) & ((X0lev == 0) | (X0lev == 1)) & X0inst[30];
 
+    wire Xwrite0 = X0isOr?X0ra:
+                   X0rt;
+    wire Xwrite1 = X0ra;
+
     // X1
 
     reg[0:31] X1inst = 0;
@@ -424,7 +442,11 @@ module main();
     wire X1isLdu = (X1opcode == 58) & (X1inst[30:31] == 1) & (X1ra != 0) & (X1ra != X1rt);
     wire X1isStd = X1opcode == 62;
     wire X1isSc = (X1opcode == 17) & ((X1lev == 0) | (X1lev == 1)) & X1inst[30];
+ 
 
+    //CR logic
+    wire [0:3] newCr; 
+    
     /**************/
     /* Write Back */
     /**************/
