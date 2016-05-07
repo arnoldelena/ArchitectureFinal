@@ -129,6 +129,7 @@ module main();
                         D0isSc?0:
                         D0ra;
     wire[0:4] D0readB = D0isSc?3:D0rb;
+
     // D1
 
     reg[0:31] D1inst = queue[head+1];
@@ -173,7 +174,7 @@ module main();
                         D1isBclr?D1bclrTarget:
                         0;
 
-//need to do if the parallel instruction sets the cr, then branch in execute stage
+    //need to do if the parallel instruction sets the cr, then branch in execute stage
     wire [0:63] D0bTarget = D0inst[30]?{{38{D0inst[6]}},D0inst[6:29],2'b00}:{{33{D0inst[6]}},D0inst[6:29],2'b00}+TruePc;
     wire [0:63] D0bclrTarget = {lr[0:61],2'b00};
     wire [0:63] D0bcTarget = D0inst[30]?{{48{D0inst[16]}},D0inst[16:29],2'b00}:{{48{D0inst[16]}},D0inst[16:29],2'b00}+TruePc;
@@ -181,30 +182,6 @@ module main();
      wire [0:63] D1bTarget = D1inst[30]?{{38{D1inst[6]}},D1inst[6:29],2'b00}:{{33{D1inst[6]}},D1inst[6:29],2'b00}+TruePc;
     wire [0:63] D1bclrTarget = {lr[0:61],2'b00};
     wire [0:63] D1bcTarget = D1inst[30]?{{48{D1inst[16]}},D1inst[16:29],2'b00}:{{48{D1inst[16]}},D1inst[16:29],2'b00}+TruePc;
-
-    always (@posedge clk) begin
-        if(D0isBranching) begin
-            state<=0;
-            pc<=D0branchTarget;
-            if(D0inst[31]==1) begin
-                lr<=TruePc+4;
-            end
-        end
-        else if (D1isBranching) begin
-            state<=0;
-            pc<=D1branchTarget;
-            if(D1inst[31]==1)begin
-                lr<=TruePc+8   //because TruePc holds pc of inst0
-            end  
-        end
-        if(D0isBranching|D1isBranching) being
-            for(i=0;i<32;i=i+1) begin
-                queue[i]<=0;
-            end
-            head<=0;
-            tail<=0;
-        end
-    end
  
     // Data Hazard/Forwarding??
 
@@ -382,13 +359,13 @@ module main();
 
     wire canParallelWriteRegs = writeNum < 3;
 
-    wire[1:0] writeNumParallel = 
+    wire[1:0] writeNumParallel = (D0write0 & ~D0noWrite0) + (D0write1 & ~D0noWrite1) + (D1write0 & canParallel) + (D1write1 & canParallel);
 
     wire Dwrite0 = writeNumParallel > 0;
     wire[4:0] DwriteA = (canParallel & D1write1) ? D1writeB : (canParallel & D1write0) ? D1writeA : D0write1 ? D0writeB : D0write0 ? D0writeA : 0;
 
     wire Dwrite1 = writeNumParallel > 1;
-    wire[4:0] DwriteB = (canParallel & D1write1 & D1write0) ? D1writeA : (canParallel & D1write1 & D0write1) ? D0writeB : (canParallel & D1write1 & D0write0) ? D0writeA : (canParallel & D1write0 & D0write1) : D0writeB : (canParallel & D1write0 & D0write0) ? D0writeA : D1write1 & D1write0 ? DwriteA : 0;
+    wire[4:0] DwriteB = (canParallel & D1write1 & D1write0) ? D1writeA : (canParallel & D1write1 & D0write1) ? D0writeB : (canParallel & D1write1 & D0write0) ? D0writeA : (canParallel & D1write0 & D0write1) ? D0writeB : (canParallel & D1write0 & D0write0) ? D0writeA : D1write1 & D1write0 ? DwriteA : 0;
 
     // ??????????????????????????????????
 
@@ -443,6 +420,18 @@ module main();
 
     // X0
 
+    reg Xwrite0 = 0;
+    reg Xwrite1 = 0;
+
+    reg[4:0] XwriteA = 0;
+    reg[4:0] XwriteB = 0;
+
+    reg Xread0 = 0;
+    reg Xread1 = 0;
+
+    reg[4:0] XreadA = 0;
+    reg[4:0] XreadB = 0;
+
     reg[0:31] X0inst = 0;
 
     wire[0:5] X0opcode = X0inst[0:5];
@@ -470,10 +459,6 @@ module main();
     wire X0isLdu = (X0opcode == 58) & (X0inst[30:31] == 1) & (X0ra != 0) & (X0ra != X0rt);
     wire X0isStd = X0opcode == 62;
     wire X0isSc = (X0opcode == 17) & ((X0lev == 0) | (X0lev == 1)) & X0inst[30];
-
-    wire Xwrite0 = X0isOr?X0ra:
-                   X0rt;
-    wire Xwrite1 = X0ra;
 
     // X1
 
@@ -505,13 +490,24 @@ module main();
     wire X1isStd = X1opcode == 62;
     wire X1isSc = (X1opcode == 17) & ((X1lev == 0) | (X1lev == 1)) & X1inst[30];
  
-
     //CR logic
     wire [0:3] newCr; 
     
     /**************/
     /* Write Back */
     /**************/
+
+    reg WBwrite0 = 0;
+    reg WBwrite1 = 0;
+
+    reg[4:0] WBwriteA = 0;
+    reg[4:0] WBwriteB = 0;
+
+    reg WBread0 = 0;
+    reg WBread1 = 0;
+
+    reg[4:0] WBreadA = 0;
+    reg[4:0] WBreadB = 0;
 
     // WB0
 
@@ -567,6 +563,31 @@ module main();
     wire[0:63] pcPlus4 = pc + 4;
     wire[0:63] nextpc = stopFetch ? pc : pcPlus4;
     always @(posedge clk) begin
+        if(D0isBranching) begin
+            state<=0;
+            pc<=D0branchTarget;
+            if(D0inst[31]==1) begin
+                lr<=TruePc+4;
+            end
+        end else if (D1isBranching) begin
+            state<=0;
+            pc<=D1branchTarget;
+            if(D1inst[31]==1)begin
+                lr<=TruePc+8;   //because TruePc holds pc of inst0
+            end  
+        end else begin
+            head <= nextHead;
+            tail <= nextTail;
+            pc <= nextpc;
+            state<=1;
+        end
+        if(D0isBranching|D1isBranching) begin
+            for(i=0;i<32;i=i+1) begin
+                queue[i]<=0;
+            end
+            head<=0;
+            tail<=0;
+        end
         if (WB0isSc) begin
             if (WB0va == 0) begin
                 $display("%c",WB0vb[56:63]);
@@ -591,16 +612,22 @@ module main();
 	end
         WB1inst <= X1inst;
         WB0inst <= X0inst;
-        X1inst <= D1inst;
-        if (~isHazard & !isSpecHazard & canParallel) begin
-            X0inst <= Dinst;
+        WBread1 <= Xread1;
+        WBwrite1 <= Xwrite1;
+        WBread0 <= Xread0;
+        WBwrite0 <= Xwrite0;
+        if (canParallel) begin
+            X1inst <= D1inst;
+        end else begin
+            X1inst <= 0;
         end
+        X0inst <= D0inst;
+        Xread1 <= Dread1;
+        Xwrite1 <= Dwrite1;
+        Xread0 <= Dread0;
+        Xwrite0 <= Dwrite0;
         // Dinst1 <= queue[head + 1];
         // Dinst0 <= queue[head];
-        head <= nextHead;
-        tail <= nextTail;
-        pc <= nextpc;
-        state <= 1;
     end
 
 endmodule
