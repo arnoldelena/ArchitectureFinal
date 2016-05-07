@@ -4,7 +4,7 @@
 				((D0isAdd&D1isSc)&(rt0==0|rt0==3))?1:
 				((D0isOr&D1isAdd)&(rs0==rt1|rb0==rt1|ra0==ra1|ra0==rb1)?1:
 				((D0isOr&D1isOr)&())*/
-
+/*
 wire isHazard = (D0ReadArg1==D1WriteArg1|D0ReadArg2==D1WriteArg1|
 					D1ReadArg1==D0WriteArg1|D1ReadArg2==D0WriteArg1|
 					D0ReadArg1==D1WriteArg2|D0ReadArg2==D1WriteArg2|
@@ -29,4 +29,4 @@ wire isSpecHazard = (D0isAdd & D1isBc | D0isAdd & D1isBclr |
 					D1isOr & D0isBc | D1isOr & D0isBclr |
 					D0isBclr & D1isB | D0isBclr & D1isBc | D0isBclr & D1isBclr |
 					D1isBclr & D0isB | D1isBclr & D0isBc | D1isBclr & D0isBclr) ? 1:0;
-
+*/

@@ -1,4 +1,5 @@
-    // D0 reads X writes
+/* 
+   // D0 reads X writes
     wire D0readAEQXwriteA = D0readA == XwriteA;
     wire D0readAUXwriteA = D0readAEQXwriteA & Xwrite0;
     wire D0readAEQXwriteB = D0readA == XwriteB;
@@ -144,4 +145,6 @@
     wire[4:0] DreadA = ~D0noRead0 ? D0readA : ~D0noRead1 ? D0readB : (~D1noRead0 & canParallel) ? D1readA : (~D1noRead1 & canParallel) ? D1readB : 0;
 
     wire Dread1 = readNumParallel > 1;
-    wire[4:0] DreadB = (~D0noRead0 & ~D0noRead1) ? D0readB : (~D0noRead0 & ~D1noRead0 & canParallel) ? D1readA : (~D0noRead0 & ~D1noRead1 & canParallel) ? D1readB : (~D0noRead1 & ~D1noRead0 & canParallel) ? D1readA : (~D0noRead1 & ~D1noRead1 & canParallel) ? D1readB : (~D1noRead0 & ~D1noRead1 & canParallel) ? D1readB : 0; 
+    wire[4:0] DreadB = (~D0noRead0 & ~D0noRead1) ? D0readB : (~D0noRead0 & ~D1noRead0 & canParallel) ? D1readA : (~D0noRead0 & ~D1noRead1 & canParallel) ? D1readB : (~D0noRead1 & ~D1noRead0 & canParallel) ? D1readA : (~D0noRead1 & ~D1noRead1 & canParallelw) ? D1readB : (~D1noRead0 & ~D1noRead1 & canParallel) ? D1readB : 0;
+
+*/ 

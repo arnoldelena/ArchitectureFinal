@@ -1,3 +1,5 @@
+/*
+
 //valid bits, to know how many registers the instructions takes
 wire D0reg0valid = (D0isAdd|D0isOr|(D0isAddi|D0isLd)&(D0ra!=0)|D0isSc|D0isLdu);
 wire D0reg1valid = (D0isAdd|D0isOr|D0isSc);
@@ -16,3 +18,5 @@ wire [0:6] Dinst0reg0 = D0isOr?D0rs:
                         D0ra;
 
 wire [0:6] Dinst0reg1 = D0isSc?3:D0rb;
+
+*/

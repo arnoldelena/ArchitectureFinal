@@ -26,7 +26,7 @@ module main();
     wire memReadEn0 = 1;
     wire [0:60]memReadAddr0 = pc[0:60];
     wire [0:63]memReadData0;
-    wire memReadEn1;
+    wire memReadEn1 = X0isLd|X0isLdu|X1isLd|X1isLdu;
     wire [0:60]memReadAddr1;
     wire [0:63]memReadData1;
     wire memWriteEn;
@@ -80,9 +80,16 @@ module main();
        regWriteData1
     );
 
-    reg[0:63][0:31] queue = 0;
+    reg[0:63] queue [0:31];
     reg[0:5] tail = 0;
     reg[0:5] head = 0;
+
+    integer i;
+    initial begin 
+        for(i=0;i<32;i=i+1) begin
+            queue[i]<=0;
+        end
+    end
 
     /*********/
     /* Fetch */
@@ -118,6 +125,10 @@ module main();
     wire D0isAddi = D0opcode == 14;
     wire D0isSc = (D0opcode == 17) & ((D0lev == 0) | (D0lev == 1)) & D0inst[30];
 
+    wire[0:4] D0readA = D0isOr?D0rs:
+                        D0isSc?0:
+                        D0ra;
+    wire[0:4] D0readB = D0isSc?3:D0rb;
     // D1
 
     reg[0:31] D1inst = queue[head+1];
@@ -142,9 +153,18 @@ module main();
     wire D1isAddi = D1opcode == 14;
     wire D1isSc = (D1opcode == 17) & ((D1lev == 0) | (D1lev == 1)) & D1inst[30];
 
-    // Data Hazard
+    wire[0:4] D1readA = D1isOr?D1rs:
+                        D1isSc?0:
+                        D1ra;
+    wire[0:4] D1readB = D1isSc?3:D1rb;
+ 
+    // Data Hazard/Forwarding??
 
     // D0 reads X writes
+
+    //AEQ = register A equals ...
+    //AUX = register A updates X??
+    //Xwrite0 is enable built
     wire D0readAEQXwriteA = D0readA == XwriteA;
     wire D0readAUXwriteA = D0readAEQXwriteA & Xwrite0;
     wire D0readAEQXwriteB = D0readA == XwriteB;
@@ -158,6 +178,7 @@ module main();
     wire D0read1Xwrite = (D0readBUXwriteA | D0readBUXwriteB);
 
     // D0 reads X reads
+    // RX means reads X, checking enable bit
     wire D0readAEQXreadA = D0readA == XreadA;
     wire D0readARXreadA = D0readAEQXreadA & Xread0;
     wire D0readAEQXreadB = D0readA == XreadB;
@@ -196,6 +217,7 @@ module main();
     wire D0read0WBread = (D0readARWBreadA | D0readARWBreadB);
     wire D0read1WBread = (D0readBRWBreadA | D0readBRWBreadB);
 
+    //checking if D0 uses any/how many registers
     wire D0noRead0 = D0read0Xwrite | D0read0Xread | D0read0WBwrite | D0read0WBread;
     wire D0noRead1 = D0read1Xwrite | D0read1Xread | D0read1WBwrite | D0read1WBread | (D0readA & (D0readA == D0readB));
 
@@ -209,8 +231,8 @@ module main();
     wire D1readBEQD0writeB = D1readB == D0writeB;
     wire D1readBUD0writeB = D1readBEQD0writeB & D0write1;
 
-    wire D1read0Xwrite = (D1readAUD0writeA | D1readAUD0writeB);
-    wire D1read1Xwrite = (D1readBUD0writeA | D1readBUD0writeB);
+    wire D1read0D0write = (D1readAUD0writeA | D1readAUD0writeB);
+    wire D1read1D0write = (D1readBUD0writeA | D1readBUD0writeB);
 
     // D1 reads D0 reads
     wire D1readAEQD0readA = D1readA == D0readA;
@@ -280,17 +302,17 @@ module main();
     wire D1noRead0 = D1read0D0write | D1read0D0read | D1read0Xwrite | D1read0Xread | D1read0WBwrite | D1read0WBread;
     wire D1noRead1 = D1read1D0write | D1read1D0read | D1read1Xwrite | D1read1Xread | D1read1WBwrite | D1read1WBread | (D1read0 & (D1readA == D1readB));
 
-    wire[2:0] readNum = (D0read0 & ~D0noRead0) + (D0read1 & ~D0noRead1) + (D1read0 & ~D1noRead0) + (D1read1 & ~D1noRead1);
+    wire[0:2] readNum = (D0read0 & ~D0noRead0) + (D0read1 & ~D0noRead1) + (D1read0 & ~D1noRead0) + (D1read1 & ~D1noRead1);
 
     wire canParallelRegs = readNum < 3;
 
-    wire[1:0] readNumParallel = (D0read0 & ~D0noRead0) + (D0read1 & ~D0noRead1) + (D1read0 & ~D1noRead0 & canParallel) + (D1read1 & ~D1noRead1 & canParallel);
+    wire[0:1] readNumParallel = (D0read0 & ~D0noRead0) + (D0read1 & ~D0noRead1) + (D1read0 & ~D1noRead0 & canParallel) + (D1read1 & ~D1noRead1 & canParallel);
 
     wire Dread0 = readNumParallel > 0;
-    wire[4:0] DreadA = ~D0noRead0 ? D0readA : ~D0noRead1 ? D0readB : (~D1noRead0 & canParallel) ? D1readA : (~D1noRead1 & canParallel) ? D1readB : 0;
+    wire[0:4] DreadA = ~D0noRead0 ? D0readA : ~D0noRead1 ? D0readB : (~D1noRead0 & canParallel) ? D1readA : (~D1noRead1 & canParallel) ? D1readB : 0;
 
     wire Dread1 = readNumParallel > 1;
-    wire[4:0] DreadB = (~D0noRead0 & ~D0noRead1) ? D0readB : (~D0noRead0 & ~D1noRead0 & canParallel) ? D1readA : (~D0noRead0 & ~D1noRead1 & canParallel) ? D1readB : (~D0noRead1 & ~D1noRead0 & canParallel) ? D1readA : (~D0noRead1 & ~D1noRead1 & canParallel) ? D1readB : (~D1noRead0 & ~D1noRead1 & canParallel) ? D1readB : 0; 
+    wire[0:4] DreadB = (~D0noRead0 & ~D0noRead1) ? D0readB : (~D0noRead0 & ~D1noRead0 & canParallel) ? D1readA : (~D0noRead0 & ~D1noRead1 & canParallel) ? D1readB : (~D0noRead1 & ~D1noRead0 & canParallel) ? D1readA : (~D0noRead1 & ~D1noRead1 & canParallel) ? D1readB : (~D1noRead0 & ~D1noRead1 & canParallel) ? D1readB : 0; 
 
     // ??????????????????????????????????
 
