@@ -50,6 +50,9 @@
     wire D0read0WBread = (D0read0 & (D0readARWBreadA | D0readARWBreadB));
     wire D0read1WBread = (D0read1 & (D0readBRWBreadA | D0readBRWBreadB));
 
+    wire D0noRead0 = D0read0Xwrite | D0read0Xread | D0read0WBwrite | D0read0WBread;
+    wire D0noRead1 = D0read1Xwrite | D0read1Xread | D0read1WBwrite | D0read1WBread | (D0readA == D0readB);
+
     // D1 reads D0 writes
     wire D1readAEQD0writeA = D1readA == D0writeA;
     wire D1readAUD0writeA = D1readAEQXwriteA & D0write0;
@@ -128,4 +131,17 @@
     wire D1read0WBread = (D1read0 & (D1readARWBreadA | D1readARWBreadB));
     wire D1read1WBread = (D1read1 & (D1readBRWBreadA | D1readBRWBreadB));
 
-    wire[1:0] readNum = D0read0 + D0read1 + D1read0 + D1read1 - (D0readAUXwriteA | D0readAUXwriteB | D0readAUWBwriteA | D0readAUWBwriteB);
+    wire D1noRead0 = D1read0D0write | D1read0D0read | D1read0Xwrite | D1read0Xread | D1read0WBwrite | D1read0WBread;
+    wire D1noRead1 = D1read1D0write | D1read1D0read | D1read1Xwrite | D1read1Xread | D1read1WBwrite | D1read1WBread | (D1readA == D1readB);
+
+    wire[2:0] readNum = ~D0noRead0 + ~D0noRead1 + ~D1noRead0 + ~D1noRead1;
+
+    wire canParallelRegs = readNum < 3;
+
+    wire[1:0] readNumParallel = ~D0noread0 + ~D0noread1 + (~D1noRead0 & canParallel) + (~D1noRead1 & canParallel);
+
+    wire Dread0 = readNumParallel > 0;
+    wire[4:0] DreadA = ~D0noRead0 ? D0readA : ~D0noRead1 ? D0readB : (~D1noRead0 & canParallel) ? D1readA : (~D1noRead1 & canParallel) ? D1readB : 0;
+
+    wire Dread1 = readNumParallel > 1;
+    wire[4:0] DreadB = (~D0noRead0 & ~D0noRead1) ? D0readB : (~D0noRead0 & ~D1noRead0 & canParallel) ? D1readA : (~D0noRead0 & ~D1noRead1 & canParallel) ? D1readB : (~D0noRead1 & ~D1noRead0 & canParallel) ? D1readA : (~D0noRead1 & ~D1noRead1 & canParallel) ? D1readB : (~D1noRead0 & ~D1noRead1 & canParallel) ? D1readB : 0; 
