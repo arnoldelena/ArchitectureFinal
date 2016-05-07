@@ -15,7 +15,7 @@ module main();
     reg[0:63] lr = 0;
     reg[0:63] ctr = 0;
     reg[0:31] cr = 0;
-    reg[0:31] xer = 0; 
+    reg[0:31] xer = 0; //0 is SO 
 
     reg state = 0;
 
@@ -158,19 +158,53 @@ module main();
                         D1ra;
     wire[0:4] D1readB = D1isSc?3:D1rb;
 
-    wire isBranching = (D0isB|D1isB)|(((D0isBc|D1isBc)|(D0isBclr|D1isBclr)) & (D0ctrOk|D1ctrOk) & (D0condOk|D1condOk);
+    wire D0isBranching = D0isB|((D0isBc|D0isBclr) & D0ctrOk & D0condOk); 
+    wire D1isBranching = D1isB|((D1isBc|D1isBclr) & D1ctrOk & D1condOk);
     wire D0ctrOk = D0inst[8]|((ctr-1 != 0)^D0inst[9]);
     wire D1ctrOk = D1inst[8]|((ctr-1 != 0)^D1inst[9]);
-    wire D0condOk = x_bo[0]|(cr[x_bi]==x_bo[1]);
-    wire [0:63] branchTarget = x_isBc?bcTarget:
-                        x_isB?bTarget:
-                        x_isBclr?bclrTarget:
+    wire D0condOk = D0inst[6]|(newCr[D0ra]==D0inst[7]);
+    wire D1condOk = D1inst[6]|(newCr[D1ra]==D1inst[7]);  
+    wire [0:63] D0branchTarget = D0isBc?D0bcTarget:
+                        D0isB?D0bTarget:
+                        D0isBclr?D0bclrTarget:
+                        0;
+    wire [0:63] D1branchTarget = D1isBc?D1bcTarget:
+                        D1isB?D1bTarget:
+                        D1isBclr?D1bclrTarget:
                         0;
 
-    wire [0:63] bTarget = x_aa?{{38{x_li[0]}},x_li,2'b00}:{{33{x_li[0]}},x_li,2'b00}+pc-8;
-    wire [0:63] bclrTarget = {lr[0:61],2'b00};
-    wire [0:63] bcTarget = x_aa?{{48{x_bd[0]}},x_bd,2'b00}:{{48{x_bd[0]}},x_bd,2'b00}+pc-8;
+//need to do if the parallel instruction sets the cr, then branch in execute stage
+    wire [0:63] D0bTarget = D0inst[30]?{{38{D0inst[6]}},D0inst[6:29],2'b00}:{{33{D0inst[6]}},D0inst[6:29],2'b00}+TruePc;
+    wire [0:63] D0bclrTarget = {lr[0:61],2'b00};
+    wire [0:63] D0bcTarget = D0inst[30]?{{48{D0inst[16]}},D0inst[16:29],2'b00}:{{48{D0inst[16]}},D0inst[16:29],2'b00}+TruePc;
 
+     wire [0:63] D1bTarget = D1inst[30]?{{38{D1inst[6]}},D1inst[6:29],2'b00}:{{33{D1inst[6]}},D1inst[6:29],2'b00}+TruePc;
+    wire [0:63] D1bclrTarget = {lr[0:61],2'b00};
+    wire [0:63] D1bcTarget = D1inst[30]?{{48{D1inst[16]}},D1inst[16:29],2'b00}:{{48{D1inst[16]}},D1inst[16:29],2'b00}+TruePc;
+
+    always (@posedge clk) begin
+        if(D0isBranching) begin
+            state<=0;
+            pc<=D0branchTarget;
+            if(D0inst[31]==1) begin
+                lr<=TruePc+4;
+            end
+        end
+        else if (D1isBranching) begin
+            state<=0;
+            pc<=D1branchTarget;
+            if(D1inst[31]==1)begin
+                lr<=TruePc+8   //because TruePc holds pc of inst0
+            end  
+        end
+        if(D0isBranching|D1isBranching) being
+            for(i=0;i<32;i=i+1) begin
+                queue[i]<=0;
+            end
+            head<=0;
+            tail<=0;
+        end
+    end
  
     // Data Hazard/Forwarding??
 
@@ -318,7 +352,7 @@ module main();
 
     wire[0:2] readNum = (D0read0 & ~D0noRead0) + (D0read1 & ~D0noRead1) + (D1read0 & ~D1noRead0) + (D1read1 & ~D1noRead1);
 
-    wire canParallelRegs = readNum < 3;
+    wire canParallelReadRegs = readNum < 3;
 
     wire[0:1] readNumParallel = (D0read0 & ~D0noRead0) + (D0read1 & ~D0noRead1) + (D1read0 & ~D1noRead0 & canParallel) + (D1read1 & ~D1noRead1 & canParallel);
 
