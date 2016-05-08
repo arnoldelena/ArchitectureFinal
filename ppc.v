@@ -742,6 +742,7 @@ module main();
         end else begin
             X1inst <= 0;
         end
+        // Might want to look into how the state is handled when you don't run in parallel.
         X1vbState <= D1vbState;
         X1vaState <= D1vaState;
         X0inst <= D0inst;
