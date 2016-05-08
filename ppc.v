@@ -656,7 +656,7 @@ module main();
     /**********/
 
     wire stopFetch = !(tail==head) & (head-tail)<=2 & (head-tail)>0;
-    wire[0:5] nextHead = ~state ? head : canParallel ? head + 2 : head + 1;
+    wire[0:5] nextHead = (~state|head==tail) ? head : canParallel ? head + 2 : head + 1;
     wire[0:5] nextTail = stopFetch ? tail : state ? tail + 2 : tail;
     wire[0:63] pcPlus8 = pc + 8;
     wire[0:63] nextpc = stopFetch ? pc : pcPlus8; //need to advance pc by 8 instead
