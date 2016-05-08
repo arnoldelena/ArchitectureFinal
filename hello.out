@@ -1,0 +1,2 @@
+ERROR: regs.v:29: $readmemh: Unable to open regs.bin for reading.
+ran for 10000 cycles
