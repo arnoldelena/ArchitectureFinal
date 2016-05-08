@@ -28,10 +28,10 @@ module main();
     wire [0:60]memReadAddr0 = pc[0:60];
     wire [0:63]memReadData0;
     wire memReadEn1 = X0isLd|X0isLdu|X1isLd|X1isLdu;
-    wire [0:60]memReadAddr1 = X1isLd | X1isLdu ? X1ea[0:63] : X0isLd | X0isLdu ? X0ea[0:60] : 0;
+    wire [0:60]memReadAddr1;
     wire [0:63]memReadData1;
-    wire memWriteEn = 0;
-    wire [0:60]memWriteAddr = 0;
+    wire memWriteEn;
+    wire [0:60]memWriteAddr;
     wire [0:63]memWriteData;
 
     mem mem0(clk,
@@ -51,13 +51,13 @@ module main();
     wire [0:4]regReadAddr1 = DreadB;
     wire [0:63]regReadData1;
 
-    wire regWriteEn0 = WBwrite0;
-    wire [0:4]regWriteAddr0 = WBwriteA;
-    wire [0:63]regWriteData0 = WBwriteDataA;
+    wire regWriteEn0;
+    wire [0:4]regWriteAddr0;
+    wire [0:63]regWriteData0;
 
-    wire regWriteEn1 = WBwrite1;
-    wire [0:4]regWriteAddr1 = WBwriteB;
-    wire [0:63]regWriteData1 = WBwriteDataB;
+    wire regWriteEn1;
+    wire [0:4]regWriteAddr1;
+    wire [0:63]regWriteData1;
 
     regs gprs(clk,
        /* Read port #0 */
@@ -129,21 +129,14 @@ module main();
     wire D0isBc = D0opcode == 16;
     wire D0isBclr = (D0opcode==19) & (D0xop10==16);
 
-    
-    wire D0read0 = D0isAdd|(D0isAddi&D0ra!=0)|D0isOr|D0isLd|D0isLdu|D0isSc;
-    wire D0read1 = D0isAdd|D0isOr|D0isSc;
     wire[0:4] D0readA = D0isOr?D0rs:
                         D0isSc?0:
                         D0ra;
     wire[0:4] D0readB = D0isSc?3:D0rb;
-    wire D0write0 = D0isAdd|D0isAddi|D0isOr|D0isLd|D0isLdu;
-    wire D0write1 = D0isLdu;
-    wire[0:4] D0writeA = D0isOr?D0ra:D0rt;
-    wire[0:4] D0writeB = D0ra;
 
     // D1
 
-    wire[0:31] D1inst = queue[head+1];
+    reg[0:31] D1inst = queue[head+1];
 
     wire[0:5] D1opcode = D1inst[0:5];
     wire[0:4] D1rs = D1inst[6:10];
@@ -168,17 +161,11 @@ module main();
     wire D1isBc = D1opcode == 16;
     wire D1isBclr = (D1opcode==19) & (D1xop10==16);
 
-    wire D1read0 = D1isAdd|(D1isAddi&D1ra!=0)|D1isOr|D1isLd|D1isLdu|D1isSc;
-    wire D1read1 = D1isAdd|D1isOr|D1isSc; 
+
     wire[0:4] D1readA = D1isOr?D1rs:
                         D1isSc?0:
                         D1ra;
     wire[0:4] D1readB = D1isSc?3:D1rb;
-    wire D1write0 = D1isAdd|D1isAddi|D1isOr|D1isLd|D1isLdu;
-    wire D1write1 = D1isLdu;
-    wire[0:4] D1writeA = D1isOr?D1ra:D1rt;
-    wire[0:4] D1writeB = D1ra;
-
 
     wire D0isBranching = D0isB|((D0isBc|D0isBclr) & D0ctrOk & D0condOk); 
     wire D1isBranching = D1isB|((D1isBc|D1isBclr) & D1ctrOk & D1condOk);
@@ -275,7 +262,7 @@ module main();
     wire D1readBEQD0writeA = D1readB == D0writeA;
     wire D1readBUD0writeA = D1readBEQD0writeA & D0write0;
     wire D1readBEQD0writeB = D1readB == D0writeB;
-    wire D1readBUD0writeB = D1readBEQD0writeB & D0write1;  
+    wire D1readBUD0writeB = D1readBEQD0writeB & D0write1;
 
     wire D1read0D0write = (D1readAUD0writeA | D1readAUD0writeB);
     wire D1read1D0write = (D1readBUD0writeA | D1readBUD0writeB);
@@ -323,7 +310,7 @@ module main();
     wire D1readAEQWBwriteA = D1readA == WBwriteA;
     wire D1readAUWBwriteA = D1readAEQWBwriteA & WBwrite0;
     wire D1readAEQWBwriteB = D1readB == WBwriteB;
-    wire D1readAUWBwriteB = D1readAEQWBwriteB & WBwrite1;
+    wire D1readAUWBwriteB = D1readAEQXWBriteB & WBwrite1;
     wire D1readBEQWBwriteA = D1readB == WBwriteA;
     wire D1readBUWBwriteA = D1readBEQWBwriteA & WBwrite0;
     wire D1readBEQWBwriteB = D1readB == WBwriteB;
@@ -361,14 +348,14 @@ module main();
     wire[0:4] DreadB = (~D0noRead0 & ~D0noRead1) ? D0readB : (~D0noRead0 & ~D1noRead0 & canParallel) ? D1readA : (~D0noRead0 & ~D1noRead1 & canParallel) ? D1readB : (~D0noRead1 & ~D1noRead0 & canParallel) ? D1readA : (~D0noRead1 & ~D1noRead1 & canParallel) ? D1readB : (~D1noRead0 & ~D1noRead1 & canParallel) ? D1readB : 0; 
 
     // D0 writes D1 writes
-    wire D0writeAEQD1writeA = D0writeA == D1writeA;
-    wire D0writeAUD1writeA = D0writeAEQD1writeA & D1write0;
-    wire D0writeAEQD1writeB = D0writeA == D1writeB;
-    wire D0writeAUD1writeB = D0writeAEQD1writeB & D1write1;
-    wire D0writeBEQD1writeA = D0writeB == D1writeA;
-    wire D0writeBUD1writeA = D0writeBEQD1writeA & D1write0;
-    wire D0writeBEQD1writeB = D0writeB == D1writeB;
-    wire D0writeBUD1writeB = D0writeBEQD1writeB & D1write1;
+    wire D0writeAEQD0writeA = D0writeA == D1writeA;
+    wire D0writeAUD0writeA = D0writeAEQD0writeA & D1write0;
+    wire D0writeAEQD0writeB = D0writeA == D1writeB;
+    wire D0writeAUD0writeB = D0writeAEQD0writeB & D1write1;
+    wire D0writeBEQD0writeA = D0writeB == D1writeA;
+    wire D0writeBUD0writeA = D0writeBEQD0writeA & D1write0;
+    wire D0writeBEQD0writeB = D0writeB == D1writeB;
+    wire D0writeBUD0writeB = D0writeBEQD0writeB & D1write1;
 
     wire D0write0D1write = (D0writeAUD1writeA | D0writeAUD1writeB);
     wire D0write1D1write = (D0writeBUD1writeA | D0writeBUD1writeB);
@@ -398,7 +385,52 @@ module main();
     wire[0:3] D1vaState = D1readAUD0writeA ? 10 : D1readAUD0writeB ? 9 : D1readAUXwriteA ? 8 : D1readAUXwriteB ? 7 : D1readARXreadA ? 6 : D1readARXreadB ? 5 : D1readAUWBwriteA ? 4 : D1readAUWBwriteB ? 3 : D1readARWBreadA ? 2 : D1readARWBreadB ? 1 : 0;
     wire[0:3] D1vbState = D1readBUD0writeA ? 10 : D1readBUD0writeB ? 9 : D1readBUXwriteA ? 8 : D1readBUXwriteB ? 7 : D1readBRXreadA ? 6 : D1readBRXreadB ? 5 : D1readBUWBwriteA ? 4 : D1readBUWBwriteB ? 3 : D1readBRWBreadA ? 2 : D1readBRWBreadB ? 1 : 0;
 
-    wire canParallel = canParallelReadRegs & canParallelWriteRegs;
+    // ??????????????????????????????????
+
+    wire isHazard = (D0readA==D1writeA|D0ReadArg2==D1WriteArg1|
+					D1ReadArg1==D0WriteArg1|D1ReadArg2==D0WriteArg1|
+					D0ReadArg1==D1WriteArg2|D0ReadArg2==D1WriteArg2|
+					D1ReadArg1==D0WriteArg2|D1ReadArg2==D0WriteArg2)?1:0;
+
+    wire [0:5]D0WriteArg1 = (D0isAdd | D0isAddi | D0isLd | D0isLdu) ? rt0:
+						(D0isOr) ? ra0:
+						63;
+
+    wire [0:5]D1WriteArg1 = (D1isAdd | D1isAddi | D1isLd | D1isLdu) ? rt1:
+						(D1isOr) ? ra1:
+						63;
+
+    wire [0:5]D0WriteArg2 = (D0isLd | D0isLdu) ? ra0:63;
+
+    wire [0:5]D1WriteArg2 = (D1isLd | D1isLdu) ? ra1:63;
+
+
+    wire isSpecHazard = (D0isAdd & D1isBc | D0isAdd & D1isBclr |
+					D0isOr & D1isBc | D0isOr & D1isBclr |
+					D1isAdd & D0isBc | D1isAdd & D0isBclr |
+					D1isOr & D0isBc | D1isOr & D0isBclr |
+					D0isBclr & D1isB | D0isBclr & D1isBc | D0isBclr & D1isBclr |
+					D1isBclr & D0isB | D1isBclr & D0isBc | D1isBclr & D0isBclr) ? 1:0;
+
+    //valid bits, to know how many registers the instructions takes
+    wire D0reg0valid = (D0isAdd|D0isOr|(D0isAddi|D0isLd)&(D0ra!=0)|D0isSc|D0isLdu);
+    wire D0reg1valid = (D0isAdd|D0isOr|D0isSc);
+
+    wire D1reg0valid = (D1isAdd|D1isOr|(D1isAddi|D1isLd)&(D1ra!=0)|D1isSc|D1isLdu);
+    wire D1reg1valid = (D1isAdd|D1isOr|D0isSc);
+
+    //do not take into acount if the two instructions are reading/writing to same register
+    wire underRegReadLimit = (D0reg0valid+D0reg1valid+D1reg0valid+D1reg1valid)<=2;
+
+    wire underRegWriteLimit = ~((D0isLdu|D1isLdu)&(D0isAdd|D0isAddi|D0isOr|D0isLd|D1isAdd|D1isAddi|D1isOr|D1isLd)); 
+
+    wire canParallel = underRegReadLimit & underRegWriteLimit;
+
+    wire [0:6] Dinst0reg0 = D0isOr?D0rs:
+                            D0isSc?0:
+                            D0ra;
+
+    wire [0:6] Dinst0reg1 = D0isSc?3:D0rb;
 
     /************/
     /* Exectute */
@@ -449,7 +481,6 @@ module main();
     wire X0isStd = X0opcode == 62;
     wire X0isSc = (X0opcode == 17) & ((X0lev == 0) | (X0lev == 1)) & X0inst[30];
 
-//change to X0readA etc
     wire[0:4] X0regA = X0isOr?X0rs:
                         X0isSc?0:
                         X0ra;
@@ -476,8 +507,6 @@ module main();
     wire[0:63] X0vb = (X0vbState == 8) ? WBwriteA : (X0vbState == 7) ? WBwriteB : (X0vbState == 6) ? WBreadA : (X0vbState == 5) ? WBreadB :
                 (X0vbState == 4) ? oldWBwriteA : (X0vbState == 3) ? oldWBwriteB : (X0vbState == 2) ? oldWBreadA : (X0vbState == 1) ? oldWBreadB : X0readvb;
 
-    wire[0:63] X0result = X0isAdd?X0va+X0vb: X0isOr?X0va|X0vb: X0isAddi?X0va+{{48{X0si[0]}},X0si}: 0;
-    wire[0:63] X0ea = X0va+X0ds;
     // X1
 
     reg[0:31] X1inst = 0;
@@ -537,10 +566,6 @@ module main();
     wire[0:63] X1vb = (X1vbState == 8) ? WBwriteA : (X1vbState == 7) ? WBwriteB : (X1vbState == 6) ? WBreadA : (X1vbState == 5) ? WBreadB :
                 (X1vbState == 4) ? oldWBwriteA : (X1vbState == 3) ? oldWBwriteB : (X1vbState == 2) ? oldWBreadA : (X1vbState == 1) ? oldWBreadB : X1readvb;
 
-    wire[0:63] X1result = X1isAdd?X1va+X1vb: X1isOr?X1va|X1vb: X1isAddi?X1va+{{48{X1si[0]}},X1si}: 0;
-    wire[0:63] X1ea = X1va+X1ds;
- 
-
     //CR logic
     wire [0:3] newCr; 
     
@@ -587,9 +612,6 @@ module main();
     wire WB0isStd = WB0opcode == 62;
     wire WB0isAddi = WB0opcode == 14;
     wire WB0isSc = (WB0opcode == 17) & ((WB0lev == 0) | (WB0lev == 1)) & WB0inst[30];
-    wire[0:4] WB0writeA = WB0isOr?WB0ra:WB0rt;
-    wire[0:4] WB0writeB = WB0ra;
-
 
     // WB1
 
@@ -618,9 +640,6 @@ module main();
     wire WB1isStd = WB1opcode == 62;
     wire WB1isAddi = WB1opcode == 14;
     wire WB1isSc = (WB1opcode == 17) & ((WB1lev == 0) | (WB1lev == 1)) & WB1inst[30];
-    wire[0:4] WB1writeA = WB1isOr?WB1ra:WB1rt;
-    wire[0:4] WB1writeB = WB1ra;
-
 
     wire[0:63] WB1va = (WB1vaState == 10) ? WB0writeA : (WB1vaState == 9) ? WB0writeB : WB1vaUnchecked;
 
