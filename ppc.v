@@ -481,6 +481,32 @@ module main();
     wire X0isStd = X0opcode == 62;
     wire X0isSc = (X0opcode == 17) & ((X0lev == 0) | (X0lev == 1)) & X0inst[30];
 
+    wire[0:4] X0ra = X0isOr?X0rs:
+                        X0isSc?0:
+                        X0ra;
+
+    wire[0:4] X0rb = X0isSc ? 3 : X0rb;
+
+    wire X0raEQXA = X0ra == XreadA;
+    wire X0raRXA = X0raEQXA & Xread0;
+    wire X0raEQXB = X0ra == XreadB;
+    wire X0raRXB = X0raEQXB & Xread1;
+
+    wire[0:63] X0readva = X0raRXA ? regReadData0 : X0raRXB ? regReadData1 : 0;
+
+    wire[0:63] X0va = (X0vaState == 8) ? WBwriteA : (X0vaState == 7) ? WBwriteB : (X0vaState == 6) ? WBreadA : (X0vaState == 5) ? WBreadB :
+                (X0vaState == 4) ? oldWBwriteA : (X0vaState == 3) ? oldWBwriteB : (X0vaState == 2) ? oldWBreadA : (X0vaState == 1) ? oldWBreadB : X0readva;
+
+    wire X0rbEQXA = X0rb == XreadA;
+    wire X0rbRXA = X0rbEQXA & Xread0;
+    wire X0rbEQXB = X0rb == XreadB;
+    wire X0rbRXB = X0rbEQXB & Xread1;
+
+    wire[0:63] X0readvb = X0rbRXA ? regReadData0 : X0rbRXB ? regReadData1 : 0;
+
+    wire[0:63] X0vb = (X0vbState == 8) ? WBwriteA : (X0vbState == 7) ? WBwriteB : (X0vbState == 6) ? WBreadA : (X0vbState == 5) ? WBreadB :
+                (X0vbState == 4) ? oldWBwriteA : (X0vbState == 3) ? oldWBwriteB : (X0vbState == 2) ? oldWBreadA : (X0vbState == 1) ? oldWBreadB : X0readvb;
+
     // X1
 
     reg[0:31] X1inst = 0;
@@ -514,6 +540,32 @@ module main();
     wire X1isStd = X1opcode == 62;
     wire X1isSc = (X1opcode == 17) & ((X1lev == 0) | (X1lev == 1)) & X1inst[30];
  
+    wire[0:4] X1ra = X1isOr?X1rs:
+                        X1isSc?0:
+                        X1ra;
+
+    wire[0:4] X1rb = X1isSc ? 3 : X1rb;
+
+    wire X1raEQXA = X1ra == XreadA;
+    wire X1raRXA = X1raEQXA & Xread0;
+    wire X1raEQXB = X1ra == XreadB;
+    wire X1raRXB = X1raEQXB & Xread1;
+
+    wire[0:63] X1readva = X1raRXA ? regReadData0 : X1raRXB ? regReadData1 : 0;
+
+    wire[0:63] X1va = (X1vaState == 8) ? WBwriteA : (X1vaState == 7) ? WBwriteB : (X1vaState == 6) ? WBreadA : (X1vaState == 5) ? WBreadB :
+                (X1vaState == 4) ? oldWBwriteA : (X1vaState == 3) ? oldWBwriteB : (X1vaState == 2) ? oldWBreadA : (X1vaState == 1) ? oldWBreadB : X1readva;
+
+    wire X1rbEQXA = X1rb == XreadA;
+    wire X1rbRXA = X1rbEQXA & Xread0;
+    wire X1rbEQXB = X1rb == XreadB;
+    wire X1rbRXB = X1rbEQXB & Xread1;
+
+    wire[0:63] X1readvb = X1rbRXA ? regReadData0 : X1rbRXB ? regReadData1 : 0;
+
+    wire[0:63] X1vb = (X1vbState == 8) ? WBwriteA : (X1vbState == 7) ? WBwriteB : (X1vbState == 6) ? WBreadA : (X1vbState == 5) ? WBreadB :
+                (X1vbState == 4) ? oldWBwriteA : (X1vbState == 3) ? oldWBwriteB : (X1vbState == 2) ? oldWBreadA : (X1vbState == 1) ? oldWBreadB : X1readvb;
+
     //CR logic
     wire [0:3] newCr; 
     
@@ -540,6 +592,9 @@ module main();
     reg[0:3] WB0vaState = 0;
     reg[0:3] WB0vbState = 0;
 
+    reg[0:63] WB0va = 0;
+    reg[0:63] WB0vb = 0;
+
     wire[0:5] WB0opcode = WB0inst[0:5];
     wire[0:4] WB0rt = WB0inst[6:10];
     wire[0:4] WB0ra = WB0inst[11:15];
@@ -565,6 +620,9 @@ module main();
     reg[0:3] WB1vaState = 0;
     reg[0:3] WB1vbState = 0;
 
+    reg[0:63] WB1vaUnchecked = 0;
+    reg[0:63] WB1vbUnchecked = 0;
+
     wire[0:5] WB1opcode = WB1inst[0:5];
     wire[0:4] WB1rt = WB1inst[6:10];
     wire[0:4] WB1ra = WB1inst[11:15];
@@ -582,6 +640,16 @@ module main();
     wire WB1isStd = WB1opcode == 62;
     wire WB1isAddi = WB1opcode == 14;
     wire WB1isSc = (WB1opcode == 17) & ((WB1lev == 0) | (WB1lev == 1)) & WB1inst[30];
+
+    wire[0:63] WB1va = (WB1vaState == 10) ? WB0writeA : (WB1vaState == 9) ? WB0writeB : WB1vaUnchecked;
+
+    wire[0:63] WB1vb = (WB1vbState == 10) ? WB0writeA : (WB1vbState == 9) ? WB0writeB : WB1vbUnchecked;
+
+    reg[0:63] oldWBwriteA = 0;
+    reg[0:63] oldWBwriteB = 0;
+
+    reg[0:63] oldWBreadA = 0;
+    reg[0:63] oldWBreadB = 0;
 
     /**********/
     /* Update */
@@ -645,12 +713,24 @@ module main();
             queue[tail + 1] = fetch[32:63];
             queue[tail] = fetch[0:31];
 	end
+        oldWBreadB <= WBreadB;
+        oldWBwriteB <= WBwriteB;
+        oldWBreadA <= WBreadA;
+        oldWBwriteA <= WBwriteA;
         WB1inst <= X1inst;
+        WB1vbUnchecked <= X1vb;
+        WB1vaUnchecked <= X1va;
         WB1vbState <= X1vbState;
         WB1vaState <= X1vaState;
         WB0inst <= X0inst;
+        WB0vb <= X0vb;
+        WB0va <= X0va;
         WB0vbState <= X0vbState;
         WB0vaState <= X0vaState;
+        WBreadB <= XreadB;
+        WBwriteB <= XwriteB;
+        WBreadA <= XreadA;
+        WBwriteA <= XwriteA;
         WBread1 <= Xread1;
         WBwrite1 <= Xwrite1;
         WBread0 <= Xread0;
@@ -665,6 +745,10 @@ module main();
         X0inst <= D0inst;
         X0vbState <= D0vbState;
         X0vaState <= D0vaState;
+        XreadB <= DreadB;
+        XwriteB <= DwriteB;
+        XreadA <= DreadA;
+        XwriteA <= DwriteA;
         Xread1 <= Dread1;
         Xwrite1 <= Dwrite1;
         Xread0 <= Dread0;
