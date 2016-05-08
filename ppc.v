@@ -760,4 +760,8 @@ module main();
         // Dinst0 <= queue[head];
     end
 
+wire [0:63] queue0 = queue[0];
+wire [0:63] queue1 = queue[1];
+wire [0:63] queue2 = queue[2];
+
 endmodule
