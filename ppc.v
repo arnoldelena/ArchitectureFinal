@@ -710,8 +710,8 @@ module main();
             end
         end
 	if(!stopFetch) begin
-            queue[tail + 1] = fetch[32:63];
-            queue[tail] = fetch[0:31];
+            queue[tail + 1] <= fetch[32:63];
+            queue[tail] <= fetch[0:31];
 	end
         oldWBwriteDataB <= WBwriteDataB;
         oldWBwriteDataA <= WBwriteDataB;
