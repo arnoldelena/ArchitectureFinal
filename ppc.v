@@ -81,7 +81,7 @@ module main();
        regWriteData1
     );
 
-    reg[0:63] queue [0:31];
+    reg[0:31] queue [0:31];
     reg[0:5] tail = 0;
     reg[0:5] head = 0;
 
@@ -104,7 +104,7 @@ module main();
 
     // D0
 
-    wire[0:31] D0inst = queue[head-1];
+    wire[0:31] D0inst = queue[head];
 
     wire[0:5] D0opcode = D0inst[0:5];
     wire[0:4] D0rs = D0inst[6:10];
@@ -143,7 +143,7 @@ module main();
 
     // D1
 
-    wire[0:31] D1inst = queue[head];
+    wire[0:31] D1inst = queue[head+1];
 
     wire[0:5] D1opcode = D1inst[0:5];
     wire[0:4] D1rs = D1inst[6:10];
