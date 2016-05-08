@@ -187,7 +187,7 @@ module main();
     wire [0:63] D0bclrTarget = {lr[0:61],2'b00};
     wire [0:63] D0bcTarget = D0inst[30]?{{48{D0inst[16]}},D0inst[16:29],2'b00}:{{48{D0inst[16]}},D0inst[16:29],2'b00}+TruePc;
 
-     wire [0:63] D1bTarget = D1inst[30]?{{38{D1inst[6]}},D1inst[6:29],2'b00}:{{33{D1inst[6]}},D1inst[6:29],2'b00}+TruePc;
+    wire [0:63] D1bTarget = D1inst[30]?{{38{D1inst[6]}},D1inst[6:29],2'b00}:{{33{D1inst[6]}},D1inst[6:29],2'b00}+TruePc;
     wire [0:63] D1bclrTarget = {lr[0:61],2'b00};
     wire [0:63] D1bcTarget = D1inst[30]?{{48{D1inst[16]}},D1inst[16:29],2'b00}:{{48{D1inst[16]}},D1inst[16:29],2'b00}+TruePc;
  
@@ -363,17 +363,27 @@ module main();
     wire D0noWrite0 = ~D0write0D1write;
     wire D0noWrite1 = ~D0write1D1write;
 
-    wire[2:0] writeNum = (D0write0 & ~D0noWrite0) + (D0write1 & ~D0noWrite1) + D1write0 + D1write1;
+    wire[0:2] writeNum = (D0write0 & ~D0noWrite0) + (D0write1 & ~D0noWrite1) + D1write0 + D1write1;
 
     wire canParallelWriteRegs = writeNum < 3;
 
-    wire[1:0] writeNumParallel = (D0write0 & ~D0noWrite0) + (D0write1 & ~D0noWrite1) + (D1write0 & canParallel) + (D1write1 & canParallel);
+    wire[0:1] writeNumParallel = (D0write0 & ~D0noWrite0) + (D0write1 & ~D0noWrite1) + (D1write0 & canParallel) + (D1write1 & canParallel);
 
     wire Dwrite0 = writeNumParallel > 0;
-    wire[4:0] DwriteA = (canParallel & D1write1) ? D1writeB : (canParallel & D1write0) ? D1writeA : D0write1 ? D0writeB : D0write0 ? D0writeA : 0;
+    wire[0:4] DwriteA = (canParallel & D1write1) ? D1writeB : (canParallel & D1write0) ? D1writeA : D0write1 ? D0writeB : D0write0 ? D0writeA : 0;
 
     wire Dwrite1 = writeNumParallel > 1;
-    wire[4:0] DwriteB = (canParallel & D1write1 & D1write0) ? D1writeA : (canParallel & D1write1 & D0write1) ? D0writeB : (canParallel & D1write1 & D0write0) ? D0writeA : (canParallel & D1write0 & D0write1) ? D0writeB : (canParallel & D1write0 & D0write0) ? D0writeA : D1write1 & D1write0 ? DwriteA : 0;
+    wire[0:4] DwriteB = (canParallel & D1write1 & D1write0) ? D1writeA : (canParallel & D1write1 & D0write1) ? D0writeB : (canParallel & D1write1 & D0write0) ? D0writeA : (canParallel & D1write0 & D0write1) ? D0writeB : (canParallel & D1write0 & D0write0) ? D0writeA : D1write1 & D1write0 ? DwriteA : 0;
+
+    // State logic
+
+    // wire D0readAUXwriteA = D0readAEQXwriteA & Xwrite0;
+    // wire D0vaState <= DtargetAU0 ? 4 : DtargetAU1 ? 3 : DtargetAUWB0 ? 2 : DtargetAUWB1 ? 1 : 0;
+    wire[0:3] D0vaState = D0readAUXwriteA ? 8 : D0readAUXwriteB ? 7 : D0readARXreadA ? 6 : D0readARXreadB ? 5 : D0readAUWBwriteA ? 4 : D0readAUWBwriteB ? 3 : D0readARWBreadA ? 2 : D0readARWBreadB ? 1 : 0;
+    wire[0:3] D0vbState = D0readBUXwriteA ? 8 : D0readBUXwriteB ? 7 : D0readBRXreadA ? 6 : D0readBRXreadB ? 5 : D0readBUWBwriteA ? 4 : D0readBUWBwriteB ? 3 : D0readBRWBreadA ? 2 : D0readBRWBreadB ? 1 : 0;
+
+    wire[0:3] D1vaState = D1readAUD0writeA ? 10 : D1readAUD0writeB ? 9 : D1readAUXwriteA ? 8 : D1readAUXwriteB ? 7 : D1readARXreadA ? 6 : D1readARXreadB ? 5 : D1readAUWBwriteA ? 4 : D1readAUWBwriteB ? 3 : D1readARWBreadA ? 2 : D1readARWBreadB ? 1 : 0;
+    wire[0:3] D1vbState = D1readBUD0writeA ? 10 : D1readBUD0writeB ? 9 : D1readBUXwriteA ? 8 : D1readBUXwriteB ? 7 : D1readBRXreadA ? 6 : D1readBRXreadB ? 5 : D1readBUWBwriteA ? 4 : D1readBUWBwriteB ? 3 : D1readBRWBreadA ? 2 : D1readBRWBreadB ? 1 : 0;
 
     // ??????????????????????????????????
 
@@ -426,21 +436,24 @@ module main();
     /* Exectute */
     /************/
 
-    // X0
-
     reg Xwrite0 = 0;
     reg Xwrite1 = 0;
 
-    reg[4:0] XwriteA = 0;
-    reg[4:0] XwriteB = 0;
+    reg[0:4] XwriteA = 0;
+    reg[0:4] XwriteB = 0;
 
     reg Xread0 = 0;
     reg Xread1 = 0;
 
-    reg[4:0] XreadA = 0;
-    reg[4:0] XreadB = 0;
+    reg[0:4] XreadA = 0;
+    reg[0:4] XreadB = 0;
+
+    // X0
 
     reg[0:31] X0inst = 0;
+
+    reg[0:3] X0vaState = 0;
+    reg[0:3] X0vbState = 0;
 
     wire[0:5] X0opcode = X0inst[0:5];
     wire[0:4] X0rt = X0inst[6:10];
@@ -471,6 +484,9 @@ module main();
     // X1
 
     reg[0:31] X1inst = 0;
+
+    reg[0:3] X1vaState = 0;
+    reg[0:3] X1vbState = 0;
 
     wire[0:5] X1opcode = X1inst[0:5];
     wire[0:4] X1rt = X1inst[6:10];
@@ -508,18 +524,21 @@ module main();
     reg WBwrite0 = 0;
     reg WBwrite1 = 0;
 
-    reg[4:0] WBwriteA = 0;
-    reg[4:0] WBwriteB = 0;
+    reg[0:4] WBwriteA = 0;
+    reg[0:4] WBwriteB = 0;
 
     reg WBread0 = 0;
     reg WBread1 = 0;
 
-    reg[4:0] WBreadA = 0;
-    reg[4:0] WBreadB = 0;
+    reg[0:4] WBreadA = 0;
+    reg[0:4] WBreadB = 0;
 
     // WB0
 
     reg[0:31] WB0inst = 0;
+
+    reg[0:3] WB0vaState = 0;
+    reg[0:3] WB0vbState = 0;
 
     wire[0:5] WB0opcode = WB0inst[0:5];
     wire[0:4] WB0rt = WB0inst[6:10];
@@ -542,6 +561,9 @@ module main();
     // WB1
 
     reg[0:31] WB1inst = 0;
+
+    reg[0:3] WB1vaState = 0;
+    reg[0:3] WB1vbState = 0;
 
     wire[0:5] WB1opcode = WB1inst[0:5];
     wire[0:4] WB1rt = WB1inst[6:10];
@@ -624,7 +646,11 @@ module main();
             queue[tail] = fetch[0:31];
 	end
         WB1inst <= X1inst;
+        WB1vbState <= X1vbState;
+        WB1vaState <= X1vaState;
         WB0inst <= X0inst;
+        WB0vbState <= X0vbState;
+        WB0vaState <= X0vaState;
         WBread1 <= Xread1;
         WBwrite1 <= Xwrite1;
         WBread0 <= Xread0;
@@ -634,7 +660,11 @@ module main();
         end else begin
             X1inst <= 0;
         end
+        X1vbState <= D1vbState;
+        X1vaState <= D1vaState;
         X0inst <= D0inst;
+        X0vbState <= D0vbState;
+        X0vaState <= D0vaState;
         Xread1 <= Dread1;
         Xwrite1 <= Dwrite1;
         Xread0 <= Dread0;
