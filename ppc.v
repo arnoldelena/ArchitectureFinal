@@ -18,6 +18,7 @@ module main();
     reg[0:31] xer = 0; //0 is SO 
 
     reg state = 0;
+    reg[0:63] TruePc = 0;
 
     /********************/
     /* Memory interface */
@@ -124,6 +125,9 @@ module main();
     wire D0isStd = D0opcode == 62;
     wire D0isAddi = D0opcode == 14;
     wire D0isSc = (D0opcode == 17) & ((D0lev == 0) | (D0lev == 1)) & D0inst[30];
+    wire D0isB = D0opcode == 18;
+    wire D0isBc = D0opcode == 16;
+    wire D0isBclr = (D0opcode==19) & (D0xop10==16);
 
     wire[0:4] D0readA = D0isOr?D0rs:
                         D0isSc?0:
@@ -153,6 +157,10 @@ module main();
     wire D1isStd = D1opcode == 62;
     wire D1isAddi = D1opcode == 14;
     wire D1isSc = (D1opcode == 17) & ((D1lev == 0) | (D1lev == 1)) & D1inst[30];
+    wire D1isB = D1opcode == 18;
+    wire D1isBc = D1opcode == 16;
+    wire D1isBclr = (D1opcode==19) & (D1xop10==16);
+
 
     wire[0:4] D1readA = D1isOr?D1rs:
                         D1isSc?0:
@@ -560,18 +568,22 @@ module main();
     wire stopFetch = !(tail==head) & (head-tail)<=2 & (head-tail)>0;
     wire[0:5] nextHead = ~state ? head : canParallel ? head + 2 : head + 1;
     wire[0:5] nextTail = stopFetch ? tail : state ? tail + 2 : tail;
-    wire[0:63] pcPlus4 = pc + 4;
-    wire[0:63] nextpc = stopFetch ? pc : pcPlus4;
+    wire[0:63] pcPlus8 = pc + 8;
+    wire[0:63] nextpc = stopFetch ? pc : pcPlus8; //need to advance pc by 8 instead
+    wire[0:63] nextTruePc = canParallel?TruePc+8:TruePc+4;//when do we check state?
+
     always @(posedge clk) begin
         if(D0isBranching) begin
             state<=0;
             pc<=D0branchTarget;
+            TruePc<=D0branchTarget;
             if(D0inst[31]==1) begin
                 lr<=TruePc+4;
             end
         end else if (D1isBranching) begin
             state<=0;
             pc<=D1branchTarget;
+            TruePc<=D1branchTarget;
             if(D1inst[31]==1)begin
                 lr<=TruePc+8;   //because TruePc holds pc of inst0
             end  
@@ -580,6 +592,7 @@ module main();
             tail <= nextTail;
             pc <= nextpc;
             state<=1;
+            TruePc<=nextTruePc;
         end
         if(D0isBranching|D1isBranching) begin
             for(i=0;i<32;i=i+1) begin
