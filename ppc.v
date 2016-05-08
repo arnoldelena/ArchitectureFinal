@@ -1,4 +1,4 @@
-
+//make regs.bin work...
 module main();
 
     initial begin
