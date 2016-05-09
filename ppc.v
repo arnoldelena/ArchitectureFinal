@@ -19,6 +19,7 @@ module main();
 
     reg state = 0;
     reg state1 = 0;
+    reg weight = 0;
     reg ignore = 0;
     reg[0:63] TruePc = 0;
 
@@ -106,7 +107,7 @@ module main();
 
     // D0
 
-    wire[0:31] D0inst = ignore ? 0 : queue[head];
+    wire[0:31] D0inst = queue[head];
 
     wire[0:5] D0opcode = D0inst[0:5];
     wire[0:4] D0rs = D0inst[6:10];
@@ -207,7 +208,7 @@ module main();
 
     wire [0:63] D1bTarget = D1inst[30]?{{38{D1inst[6]}},D1inst[6:29],2'b00}:{{38{D1inst[6]}},D1inst[6:29],2'b00}+TruePc+4;
     wire [0:63] D1bclrTarget = {lr[0:61],2'b00};
-    wire [0:63] D1bcTarget = D1inst[30]?{{48{D1inst[16]}},D1inst[16:29],2'b00}:{{48{D1inst[16]}},D1inst[16:29],2'b00}+TruePc+1;
+    wire [0:63] D1bcTarget = D1inst[30]?{{48{D1inst[16]}},D1inst[16:29],2'b00}:{{48{D1inst[16]}},D1inst[16:29],2'b00}+TruePc;
  
     // Data Hazard/Forwarding??
 
@@ -360,10 +361,10 @@ module main();
     wire[0:3] readNumParallel = (D0read0 & ~D0noRead0) + (D0read1 & ~D0noRead1) + (D1read0 & ~D1noRead0 & canParallel) + (D1read1 & ~D1noRead1 & canParallel);
 
     wire Dread0 = readNumParallel > 0;
-    wire[0:4] DreadA = ~D0noRead0 ? D0readA : ~D0noRead1 ? D0readB : (~D1noRead0 & canParallel) ? D1readA : (~D1noRead1 & canParallel) ? D1readB : 0;
+    wire[0:4] DreadA = D0read0 & ~D0noRead0 ? D0readA : D0read1 & ~D0noRead1 ? D0readB : (D1read0 & ~D1noRead0 & canParallel) ? D1readA : (D1read1 & ~D1noRead1 & canParallel) ? D1readB : 0;
 
     wire Dread1 = readNumParallel > 1;
-    wire[0:4] DreadB = (~D0noRead0 & ~D0noRead1) ? D0readB : (~D0noRead0 & ~D1noRead0 & canParallel) ? D1readA : (~D0noRead0 & ~D1noRead1 & canParallel) ? D1readB : (~D0noRead1 & ~D1noRead0 & canParallel) ? D1readA : (~D0noRead1 & ~D1noRead1 & canParallel) ? D1readB : (~D1noRead0 & ~D1noRead1 & canParallel) ? D1readB : 0; 
+    wire[0:4] DreadB = (D0read0 & ~D0noRead0 & D0read1 & ~D0noRead1) ? D0readB : (D0read0 & ~D0noRead0 & D1read0 & ~D1noRead0 & canParallel) ? D1readA : (D0read0 & ~D0noRead0 & D1read1 & ~D1noRead1 & canParallel) ? D1readB : (D0read1 & ~D0noRead1 & D1read0 & ~D1noRead0 & canParallel) ? D1readA : (D0read1 & ~D0noRead1 & D1read1 & ~D1noRead1 & canParallel) ? D1readB : (D1read0 & ~D1noRead0 & D1read1& ~D1noRead1 & canParallel) ? D1readB : 0; 
 
     // D0 writes D1 writes
     //checks that both are writing now
@@ -464,7 +465,7 @@ module main();
                         X0isSc?0:
                         X0ra;
 
-    wire[0:4] X0regB = X0isSc ? 3 : X0regB;
+    wire[0:4] X0regB = X0isSc ? 3 : X0rb;
 
     wire X0regAEQXA = X0regA == XreadA;
     wire X0regARXA = X0regAEQXA & Xread0;
@@ -705,36 +706,43 @@ module main();
             state1<=0;
             pc<=D0branchTarget;
             TruePc<=D0branchTarget;
-            if(D0inst[31]==1) begin
-                lr<=TruePc+4;
-            end
         end else if (canParallel & D1isBranching) begin
             state<=0;
             state1<=0;
             pc<=D1branchTarget;
             TruePc<=D1branchTarget;
-            if(D1inst[31]==1)begin
-                lr<=TruePc+8;   //because TruePc holds pc of inst0
-            end  
         end else begin 
             head <= nextHead;
             tail <= nextTail;
             pc <= nextpc;
+            weight<=0;
+            ignore <= weight;
             state<=1;
             state1<=state;
             TruePc<=nextTruePc;
+        end
+
+        //can we run two branches at same time?
+        if((D0isB|D0isBc|D0isBclr) & D0inst[31]) begin
+            lr<=TruePc+4;
+        end
+        if((D1isB|D1isBc|D1isBclr) & D1inst[31]) begin
+            lr<=TruePc+8;
         end
         if(D0isBranching|(D1isBranching&canParallel)) begin
             for(i=0;i<32;i=i+1) begin
                 queue[i]<=0;
             end
             if(D0isBranching & D0branchTarget[61]) begin
+                weight<=1;
                 ignore<=1;
             end
             else 
             if(D1isBranching & D1branchTarget[61]) begin
+                weight<=1;
                 ignore<=1;
             end else begin
+                weight<=0;
                 ignore<=0;
             end
             head<=0;
@@ -760,7 +768,9 @@ module main();
         end
 	if(!stopFetch) begin
             queue[tail + 1] <= fetch[32:63];
-            queue[tail] <= fetch[0:31];
+            if (~ignore) begin
+                queue[tail] <= fetch[0:31];
+            end
 	end
         oldWBwriteDataB <= WBwriteDataB;
         oldWBwriteDataA <= WBwriteDataA;
