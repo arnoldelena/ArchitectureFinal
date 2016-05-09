@@ -672,9 +672,9 @@ module main();
     wire[0:4] WB1writeA = WB1isOr?WB1ra:WB1rt;
     wire[0:4] WB1writeB = WB1ra;
 
-//putting register number into value??? instead of value of register
-    wire[0:63] WB1va = (WB1vaState == 10) ? WB0writeA : (WB1vaState == 9) ? WB0writeB : WB1vaUnchecked;
-    wire[0:63] WB1vb = (WB1vbState == 10) ? WB0writeA : (WB1vbState == 9) ? WB0writeB : WB1vbUnchecked;
+
+    wire[0:63] WB1va = (WB1vaState == 10) ? WB0writeDataA : (WB1vaState == 9) ? WB0writeDataB : WB1vaUnchecked;
+    wire[0:63] WB1vb = (WB1vbState == 10) ? WB0writeDataA : (WB1vbState == 9) ? WB0writeDataB : WB1vbUnchecked;
 
     wire[0:63] WB1writeDataA = WB1isAdd ? WB1va + WB1vb : WB1isOr ? WB1va | WB1vb : (WB1isAddi & WB1ra==0) ? WB1si : (WB1isAddi & WB1ra!=0) ? WB1va + WB1si : (WB1isLd | WB1isLdu) ? memReadData1 :  0;
     wire[0:63] WB1writeDataB = WB1va + WB1ds;
