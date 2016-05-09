@@ -649,8 +649,8 @@ module main();
     wire[0:63] WB1writeDataA = WB1isAdd ? WB1va + WB1vb : WB1isOr ? WB1va | WB1vb : (WB1isAddi & WB1ra==0) ? WB1si : (WB1isAddi & WB1ra!=0) ? WB1va + WB1si : (WB1isLd | WB1isLdu) ? memReadData1 :  0;
     wire[0:63] WB1writeDataB = WB1va + WB1ds;
 
-    wire[0:63] WBwriteDataA = (WB1writeA == WBwriteA) & WB1write0 ? WB1writeDataA : (WB1writeB == WBwriteA) & WB1write1 ? WB1writeDataB : (WB1writeA == WBwriteA) & WB0write0 ? WB0writeDataA : (WB0writeB == WBwriteA) & WB0write1 ? WB0writeDataB : 0;
-    wire[0:63] WBwriteDataB = (WB1writeA == WBwriteB) & WB1write0 ? WB1writeDataA : (WB1writeB == WBwriteB) & WB1write1 ? WB1writeDataB : (WB1writeA == WBwriteB) & WB0write0 ? WB0writeDataA : (WB0writeB == WBwriteB) & WB0write1 ? WB0writeDataB : 0;
+    wire[0:63] WBwriteDataA = (WB1writeA == WBwriteA) & WB1write0 ? WB1writeDataA : (WB1writeB == WBwriteA) & WB1write1 ? WB1writeDataB : (WB0writeA == WBwriteA) & WB0write0 ? WB0writeDataA : (WB0writeB == WBwriteA) & WB0write1 ? WB0writeDataB : 0;
+    wire[0:63] WBwriteDataB = (WB1writeA == WBwriteB) & WB1write0 ? WB1writeDataA : (WB1writeB == WBwriteB) & WB1write1 ? WB1writeDataB : (WB0writeA == WBwriteB) & WB0write0 ? WB0writeDataA : (WB0writeB == WBwriteB) & WB0write1 ? WB0writeDataB : 0;
 
     reg[0:63] oldWBva = 0;
     reg[0:63] oldWBvb = 0;
