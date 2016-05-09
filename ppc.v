@@ -202,9 +202,9 @@ module main();
     wire [0:63] D0bclrTarget = {lr[0:61],2'b00};
     wire [0:63] D0bcTarget = D0inst[30]?{{48{D0inst[16]}},D0inst[16:29],2'b00}:{{48{D0inst[16]}},D0inst[16:29],2'b00}+TruePc;
 
-    wire [0:63] D1bTarget = D1inst[30]?{{38{D1inst[6]}},D1inst[6:29],2'b00}:{{33{D1inst[6]}},D1inst[6:29],2'b00}+TruePc;
+    wire [0:63] D1bTarget = D1inst[30]?{{38{D1inst[6]}},D1inst[6:29],2'b00}:{{33{D1inst[6]}},D1inst[6:29],2'b00}+TruePc+4;
     wire [0:63] D1bclrTarget = {lr[0:61],2'b00};
-    wire [0:63] D1bcTarget = D1inst[30]?{{48{D1inst[16]}},D1inst[16:29],2'b00}:{{48{D1inst[16]}},D1inst[16:29],2'b00}+TruePc;
+    wire [0:63] D1bcTarget = D1inst[30]?{{48{D1inst[16]}},D1inst[16:29],2'b00}:{{48{D1inst[16]}},D1inst[16:29],2'b00}+TruePc+1;
  
     // Data Hazard/Forwarding??
 
@@ -404,7 +404,8 @@ module main();
     wire[0:3] D1vaState = D1readAUD0writeA ? 10 : D1readAUD0writeB ? 9 : D1readAUXwriteA ? 8 : D1readAUXwriteB ? 7 : D1readARXreadA ? 6 : D1readARXreadB ? 5 : D1readAUWBwriteA ? 4 : D1readAUWBwriteB ? 3 : D1readARWBreadA ? 2 : D1readARWBreadB ? 1 : 0;
     wire[0:3] D1vbState = D1readBUD0writeA ? 10 : D1readBUD0writeB ? 9 : D1readBUXwriteA ? 8 : D1readBUXwriteB ? 7 : D1readBRXreadA ? 6 : D1readBRXreadB ? 5 : D1readBUWBwriteA ? 4 : D1readBUWBwriteB ? 3 : D1readBRWBreadA ? 2 : D1readBRWBreadB ? 1 : 0;
 
-    wire canParallel = canParallelReadRegs & canParallelWriteRegs;
+    wire canParallel = canParallelReadRegs & canParallelWriteRegs & ~specHazard;
+    wire specHazard = (D1isAdd | D1isOr) & D1inst[31] & ((D1vaState == 10) | (D1vaState == 9) | (D1vbState == 10) | (D1vbState == 9));
 
     /************/
     /* Execute */
