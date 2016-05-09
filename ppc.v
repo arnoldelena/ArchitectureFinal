@@ -28,7 +28,7 @@ module main();
     wire [0:60]memReadAddr0 = pc[0:60];
     wire [0:63]memReadData0;
     wire memReadEn1 = X0isLd|X0isLdu|X1isLd|X1isLdu;
-    wire [0:60]memReadAddr1 = X1isLd | X1isLdu ? X1ea[0:63] : X0isLd | X0isLdu ? X0ea[0:60] : 0;
+    wire [0:60]memReadAddr1 = X1isLd | X1isLdu ? X1ea[0:60] : X0isLd | X0isLdu ? X0ea[0:60] : 0;
     wire [0:63]memReadData1;
     wire memWriteEn = 0;
     wire [0:60]memWriteAddr = 0;
@@ -129,8 +129,8 @@ module main();
     wire D0isBc = D0opcode == 16;
     wire D0isBclr = (D0opcode==19) & (D0xop10==16);
 
-    
-    wire D0read0 = D0isAdd|(D0isAddi&D0ra!=0)|D0isOr|D0isLd|D0isLdu|D0isSc;
+   //added check for if ld has an ra==0 
+    wire D0read0 = D0isAdd|(D0isAddi&(D0ra!=0))|D0isOr|(D0isLd&(D0ra!=0))|D0isLdu|D0isSc;
     wire D0read1 = D0isAdd|D0isOr|D0isSc;
     wire[0:4] D0readA = D0isOr?D0rs:
                         D0isSc?0:
@@ -168,7 +168,7 @@ module main();
     wire D1isBc = D1opcode == 16;
     wire D1isBclr = (D1opcode==19) & (D1xop10==16);
 
-    wire D1read0 = D1isAdd|(D1isAddi&D1ra!=0)|D1isOr|D1isLd|D1isLdu|D1isSc;
+    wire D1read0 = D1isAdd|(D1isAddi&(D1ra!=0))|D1isOr|(D1isLd&(D1ra!=0))|D1isLdu|D1isSc;
     wire D1read1 = D1isAdd|D1isOr|D1isSc; 
     wire[0:4] D1readA = D1isOr?D1rs:
                         D1isSc?0:
@@ -361,31 +361,35 @@ module main();
     wire[0:4] DreadB = (~D0noRead0 & ~D0noRead1) ? D0readB : (~D0noRead0 & ~D1noRead0 & canParallel) ? D1readA : (~D0noRead0 & ~D1noRead1 & canParallel) ? D1readB : (~D0noRead1 & ~D1noRead0 & canParallel) ? D1readA : (~D0noRead1 & ~D1noRead1 & canParallel) ? D1readB : (~D1noRead0 & ~D1noRead1 & canParallel) ? D1readB : 0; 
 
     // D0 writes D1 writes
+    //checks that both are writing now
     wire D0writeAEQD1writeA = D0writeA == D1writeA;
-    wire D0writeAUD1writeA = D0writeAEQD1writeA & D1write0;
+    wire D0writeAUD1writeA = D0writeAEQD1writeA & D1write0 & D0write0;
     wire D0writeAEQD1writeB = D0writeA == D1writeB;
-    wire D0writeAUD1writeB = D0writeAEQD1writeB & D1write1;
+    wire D0writeAUD1writeB = D0writeAEQD1writeB & D1write1 & D0write0;
     wire D0writeBEQD1writeA = D0writeB == D1writeA;
-    wire D0writeBUD1writeA = D0writeBEQD1writeA & D1write0;
+    wire D0writeBUD1writeA = D0writeBEQD1writeA & D1write0 & D0write1;
     wire D0writeBEQD1writeB = D0writeB == D1writeB;
-    wire D0writeBUD1writeB = D0writeBEQD1writeB & D1write1;
+    wire D0writeBUD1writeB = D0writeBEQD1writeB & D1write1 & D0write1;
 
     wire D0write0D1write = (D0writeAUD1writeA | D0writeAUD1writeB);
     wire D0write1D1write = (D0writeBUD1writeA | D0writeBUD1writeB);
 
-    wire D0noWrite0 = ~D0write0D1write;
-    wire D0noWrite1 = ~D0write1D1write;
+//got was double negative, made it D0write0D1write instead of ~D0write0D1write
+    wire D0noWrite0 = D0write0D1write;
+    wire D0noWrite1 = D0write1D1write;
 
-    wire[0:2] writeNum = (D0write0 & ~D0noWrite0) + (D0write1 & ~D0noWrite1) + D1write0 + D1write1;
+//changed these wire sizes to 4 bits instead of 1/2
+    wire[0:3] writeNum = (D0write0 & ~D0noWrite0) + (D0write1 & ~D0noWrite1) + D1write0 + D1write1;
 
     wire canParallelWriteRegs = writeNum < 3;
 
-    wire[0:1] writeNumParallel = (D0write0 & ~D0noWrite0) + (D0write1 & ~D0noWrite1) + (D1write0 & canParallel) + (D1write1 & canParallel);
+    wire[0:3] writeNumParallel = (D0write0 & ~D0noWrite0) + (D0write1 & ~D0noWrite1) + (D1write0 & canParallel) + (D1write1 & canParallel);
 
     wire Dwrite0 = writeNumParallel > 0;
     wire[0:4] DwriteA = (canParallel & D1write1) ? D1writeB : (canParallel & D1write0) ? D1writeA : D0write1 ? D0writeB : D0write0 ? D0writeA : 0;
 
-    wire Dwrite1 = writeNumParallel > 1;
+//changed to ==2 instead of >1
+    wire Dwrite1 = writeNumParallel == 2;
     wire[0:4] DwriteB = (canParallel & D1write1 & D1write0) ? D1writeA : (canParallel & D1write1 & D0write1) ? D0writeB : (canParallel & D1write1 & D0write0) ? D0writeA : (canParallel & D1write0 & D0write1) ? D0writeB : (canParallel & D1write0 & D0write0) ? D0writeA : D1write1 & D1write0 ? DwriteA : 0;
 
     // State logic
@@ -401,7 +405,7 @@ module main();
     wire canParallel = canParallelReadRegs & canParallelWriteRegs;
 
     /************/
-    /* Exectute */
+    /* Execute */
     /************/
 
     reg Xwrite0 = 0;
@@ -477,7 +481,9 @@ module main();
                 (X0vbState == 4) ? oldWBwriteDataA : (X0vbState == 3) ? oldWBwriteDataB : (X0vbState == 2) ? oldWBva : (X0vbState == 1) ? oldWBvb : X0readvb;
 
     wire[0:63] X0result = X0isAdd?X0va+X0vb: X0isOr?X0va|X0vb: 0; // X0isAddi?X0va+{{48{X0si[0]}},X0si}: 0;
-    wire[0:63] X0ea = X0va+X0ds;
+    
+//changed to take ld, ra ==0 into account
+    wire[0:63] X0ea = X0isLd&(X0ra==0)?X0ds:X0va+X0ds;
     // X1
 
     reg[0:31] X1inst = 0;
@@ -539,7 +545,7 @@ module main();
                 (X1vbState == 4) ? oldWBwriteDataA : (X1vbState == 3) ? oldWBwriteDataB : (X1vbState == 2) ? oldWBva : (X1vbState == 1) ? oldWBva : X1readvb;
 
     wire[0:63] X1result = X1isAdd?X1va+X1vb: X1isOr?X1va|X1vb: 0; // X1isAddi?X1va+{{48{X1si[0]}},X1si}: 0;
-    wire[0:63] X1ea = X1va+X1ds;
+    wire[0:63] X1ea = X1isLd&(X1ra==0)?X1ds:X1va+X1ds;
  
 
     //CR logic
@@ -597,8 +603,8 @@ module main();
     wire WB0write0 = WB0isAdd|WB0isAddi|WB0isOr|WB0isLd|WB0isLdu;
     wire WB0write1 = WB0isLdu;
 
-
-    wire[0:63] WB0writeDataA = WB0isAdd ? WB0va + WB0vb : WB0isOr ? WB0va | WB0vb : WB0isAddi ? WB0va + WB0si : (WB0isLd | WB0isLdu) ? memReadData1 :  0;
+//changed addi to check if ra is 0, did same for WB1isAddi
+    wire[0:63] WB0writeDataA = WB0isAdd ? WB0va + WB0vb : WB0isOr ? WB0va | WB0vb : (WB0isAddi & WB0ra==0) ? WB0si : (WB0isAddi & WB0ra!=0) ? WB0va + WB0si : (WB0isLd | WB0isLdu) ? memReadData1 :  0;
     wire[0:63] WB0writeDataB = WB0va + WB0ds;
 
     // WB1
@@ -636,10 +642,11 @@ module main();
     wire[0:4] WB1writeA = WB1isOr?WB1ra:WB1rt;
     wire[0:4] WB1writeB = WB1ra;
 
+//putting register number into value??? instead of value of register
     wire[0:63] WB1va = (WB1vaState == 10) ? WB0writeA : (WB1vaState == 9) ? WB0writeB : WB1vaUnchecked;
     wire[0:63] WB1vb = (WB1vbState == 10) ? WB0writeA : (WB1vbState == 9) ? WB0writeB : WB1vbUnchecked;
 
-    wire[0:63] WB1writeDataA = WB1isAdd ? WB1va + WB1vb : WB1isOr ? WB1va | WB1vb : WB1isAddi ? WB1va + WB1si : (WB1isLd | WB1isLdu) ? memReadData1 :  0;
+    wire[0:63] WB1writeDataA = WB1isAdd ? WB1va + WB1vb : WB1isOr ? WB1va | WB1vb : (WB1isAddi & WB1ra==0) ? WB1si : (WB1isAddi & WB1ra!=0) ? WB1va + WB1si : (WB1isLd | WB1isLdu) ? memReadData1 :  0;
     wire[0:63] WB1writeDataB = WB1va + WB1ds;
 
     wire[0:63] WBwriteDataA = (WB1writeA == WBwriteA) & WB1write0 ? WB1writeDataA : (WB1writeB == WBwriteA) & WB1write1 ? WB1writeDataB : (WB1writeA == WBwriteA) & WB0write0 ? WB0writeDataA : (WB0writeB == WBwriteA) & WB0write1 ? WB0writeDataB : 0;
