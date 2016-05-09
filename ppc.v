@@ -351,7 +351,7 @@ module main();
     wire D1read1WBread = (D1readBRWBreadA | D1readBRWBreadB);
 
     wire D1noRead0 = D1read0D0write | D1read0D0read | D1read0Xwrite | D1read0Xread | D1read0WBwrite | D1read0WBread;
-    wire D1noRead1 = D1read1D0write | D1read1D0read | D1read1Xwrite | D1read1Xread | D1read1WBwrite | D1read1WBread | (D1read0 & (D1readA == D1readB));
+    wire D1noRead1 = D1read1D0write | D1read1D0read | D1read1Xwrite | D1read1Xread | D1read1WBwrite | D1read1WBread | (D1read1 & (D1readA == D1readB));
 
     wire[0:3] readNum = (D0read0 & ~D0noRead0) + (D0read1 & ~D0noRead1) + (D1read0 & ~D1noRead0) + (D1read1 & ~D1noRead1);
 
@@ -776,8 +776,8 @@ module main();
         WB0va <= X0va;
         WB0vbState <= X0vbState;
         WB0vaState <= X0vaState;
-        WBreadB <= regReadData1;
-        WBreadA <= regReadData0;
+        WBvb <= regReadData1;
+        WBva <= regReadData0;
         WBreadB <= XreadB;
         WBwriteB <= XwriteB;
         WBreadA <= XreadA;
