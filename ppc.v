@@ -245,7 +245,7 @@ module main();
     // D0 reads WB writes
     wire D0readAEQWBwriteA = D0readA == WBwriteA;
     wire D0readAUWBwriteA = D0readAEQWBwriteA & WBwrite0;
-    wire D0readAEQWBwriteB = D0readB == WBwriteB;
+    wire D0readAEQWBwriteB = D0readA == WBwriteB;
     wire D0readAUWBwriteB = D0readAEQWBwriteB & WBwrite1;
     wire D0readBEQWBwriteA = D0readB == WBwriteA;
     wire D0readBUWBwriteA = D0readBEQWBwriteA & WBwrite0;
@@ -275,7 +275,7 @@ module main();
     // D1 reads D0 writes
     wire D1readAEQD0writeA = D1readA == D0writeA;
     wire D1readAUD0writeA = D1readAEQD0writeA & D0write0 & D1read0;
-    wire D1readAEQD0writeB = D1readB == D0writeB;
+    wire D1readAEQD0writeB = D1readA == D0writeB;
     wire D1readAUD0writeB = D1readAEQD0writeB & D0write1 & D1read0;
     wire D1readBEQD0writeA = D1readB == D0writeA;
     wire D1readBUD0writeA = D1readBEQD0writeA & D0write0 & D1read1;
@@ -301,7 +301,7 @@ module main();
     // D1 reads X writes
     wire D1readAEQXwriteA = D1readA == XwriteA;
     wire D1readAUXwriteA = D1readAEQXwriteA & Xwrite0;
-    wire D1readAEQXwriteB = D1readB == XwriteB;
+    wire D1readAEQXwriteB = D1readA == XwriteB;
     wire D1readAUXwriteB = D1readAEQXwriteB & Xwrite1;
     wire D1readBEQXwriteA = D1readB == XwriteA;
     wire D1readBUXwriteA = D1readBEQXwriteA & Xwrite0;
@@ -327,7 +327,7 @@ module main();
     // D1 reads WB writes
     wire D1readAEQWBwriteA = D1readA == WBwriteA;
     wire D1readAUWBwriteA = D1readAEQWBwriteA & WBwrite0;
-    wire D1readAEQWBwriteB = D1readB == WBwriteB;
+    wire D1readAEQWBwriteB = D1readA == WBwriteB;
     wire D1readAUWBwriteB = D1readAEQWBwriteB & WBwrite1;
     wire D1readBEQWBwriteA = D1readB == WBwriteA;
     wire D1readBUWBwriteA = D1readBEQWBwriteA & WBwrite0;
