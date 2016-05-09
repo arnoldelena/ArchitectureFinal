@@ -1,0 +1,42 @@
+[*]
+[*] GTKWave Analyzer v3.3.58 (w)1999-2014 BSI
+[*] Mon May  9 03:21:39 2016
+[*]
+[dumpfile] "/v/filer4b/v38q001/lucyaliu/ArchitectureFinal/krztest.vcd"
+[dumpfile_mtime] "Mon May  9 02:45:06 2016"
+[dumpfile_size] 48044
+[savefile] "/v/filer4b/v38q001/lucyaliu/ArchitectureFinal/krz debug.gtkw"
+[timestart] 4
+[size] 1259 846
+[pos] 65 14
+*-1.736966 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[sst_width] 210
+[signals_width] 182
+[sst_expanded] 1
+[sst_vpaned_height] 238
+@24
+main.pc[0:63]
+main.TruePc[0:63]
+main.regWriteAddr0[0:4]
+main.regWriteData0[0:63]
+main.regWriteAddr1[0:4]
+main.regWriteData1[0:63]
+@22
+main.D0inst[0:31]
+main.D1inst[0:31]
+main.X0inst[0:31]
+main.X1inst[0:31]
+main.WB0inst[0:31]
+main.WB1inst[0:31]
+@28
+main.X0newCr[0:3]
+main.X1newCr[0:3]
+main.cr[0:31]
+@22
+main.X1result[0:63]
+@25
+main.X1va[0:63]
+@24
+main.X1vb[0:63]
+[pattern_trace] 1
+[pattern_trace] 0
