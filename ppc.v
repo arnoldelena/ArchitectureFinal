@@ -184,8 +184,10 @@ module main();
     wire D1isBranching = D1isB|((D1isBc|D1isBclr) & D1ctrOk & D1condOk);
     wire D0ctrOk = D0inst[8]|((ctr-1 != 0)^D0inst[9]);
     wire D1ctrOk = D1inst[8]|((ctr-1 != 0)^D1inst[9]);
-    wire D0condOk = D0inst[6]|(newCr[D0ra]==D0inst[7]);
-    wire D1condOk = D1inst[6]|(newCr[D1ra]==D1inst[7]);  
+
+    wire [0:3] TrueCr = (X0isAdd|X0isOr) & X0rc?X0newCr: (X1isAdd|X1isOr)&X1rc?X1newCr:cr;
+    wire D0condOk = D0inst[6]|(TrueCr[D0ra]==D0inst[7]);
+    wire D1condOk = D1inst[6]|(TrueCr[D1ra]==D1inst[7]);  
     wire [0:63] D0branchTarget = D0isBc?D0bcTarget:
                         D0isB?D0bTarget:
                         D0isBclr?D0bclrTarget:
@@ -548,8 +550,22 @@ module main();
  
 
     //CR logic
-    wire [0:3] newCr; 
+    wire X0isOv = (X0va[0]==0 && X0vb[0]==0) && (X0result[0]==1)?1:0;
+    wire X0isUv = (X0va[0]==1 && X0vb[0]==1) && (X0result[0]==0)?1:0;
+    wire X1isOv = (X1va[0]==0 && X1vb[0]==0) && (X1result[0]==1)?1:0;
+    wire X1isUv = (X1va[0]==1 && X1vb[0]==1) && (X1result[0]==0)?1:0;
     
+    wire [0:3] X0newCr; 
+    assign X0newCr[0] = X0result[0]==1?1:0;
+    assign X0newCr[1] = X0result[0]==0 & X0result!=0?1:0;
+    assign X0newCr[2] = X0result == 0;
+    assign X0newCr[3] = X0oe&(X0isOv|X0isUv)?1:xer[0];
+    
+    wire [0:3] X1newCr; 
+    assign X1newCr[0] = X1result[0]==1?1:0;
+    assign X1newCr[1] = X1result[0]==0 & X1result!=0?1:0;
+    assign X1newCr[2] = X1result == 0;
+    assign X1newCr[3] = X1oe&(X1isOv|X1isUv|((X0oe&X0isAdd)&(X0isOv|X0isUv)))?1:xer[0];    
     /**************/
     /* Write Back */
     /**************/
@@ -669,6 +685,11 @@ module main();
     wire[0:63] nextTruePc = canParallel?TruePc+8:TruePc+4;//when do we check state?
 
     always @(posedge clk) begin
+        if((X0isAdd|X0isOr)&X0rc) begin
+            cr[0:3]<= X0newCr;
+        end else if((X1isAdd|X1isOr)&X1rc) begin
+            cr[0:3]<=X1newCr;
+        end
         if(D0isBranching) begin
             state<=0;
             pc<=D0branchTarget;
