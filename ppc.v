@@ -409,7 +409,7 @@ module main();
     wire[0:3] D1vbState = D1readBUD0writeA ? 10 : D1readBUD0writeB ? 9 : D1readBUXwriteA ? 8 : D1readBUXwriteB ? 7 : D1readBRXreadA ? 6 : D1readBRXreadB ? 5 : D1readBUWBwriteA ? 4 : D1readBUWBwriteB ? 3 : D1readBRWBreadA ? 2 : D1readBRWBreadB ? 1 : 0;
 
     wire canParallel = canParallelReadRegs & canParallelWriteRegs & ~specHazard & ~D0isBranching;
-    wire specHazard = ((D1isAdd | D1isOr) & D1inst[31] & ((D1vaState == 10) | (D1vaState == 9) | (D1vbState == 10) | (D1vbState == 9))) | ((D0isAdd|D0isOr)&D0inst[31]&(D1isBc|D1isBclr));
+    wire specHazard = ((D1isAdd | D1isOr) & D1inst[31] & ((D1vaState == 10) | (D1vaState == 9) | (D1vbState == 10) | (D1vbState == 9))) | ((D0isAdd|D0isOr)&D0inst[31]&(D1isBc|D1isBclr))|((D0isLd|D0isLdu)&(D1isLd|D1isLdu)) | ((D1isLd|D1isLdu) & ((D1vaState == 10) | (D1vaState == 9) | (D1vbState == 10) | (D1vbState == 9)));
 
     /************/
     /* Execute */
@@ -723,13 +723,12 @@ module main();
         end
 
         //can we run two branches at same time?
-        if((D0isB|D0isBc|D0isBclr) & D0inst[31]) begin
+        if((D1isB|D1isBc|D1isBclr) & D1inst[31] & canParallel) begin
+            lr<=TruePc+8;
+        end else if((D0isB|D0isBc|D0isBclr) & D0inst[31]) begin
             lr<=TruePc+4;
         end
-        if((D1isB|D1isBc|D1isBclr) & D1inst[31]) begin
-            lr<=TruePc+8;
-        end
-        if(D0isBranching|(D1isBranching&canParallel)) begin
+       if(D0isBranching|(D1isBranching&canParallel)) begin
             for(i=0;i<32;i=i+1) begin
                 queue[i]<=0;
             end
