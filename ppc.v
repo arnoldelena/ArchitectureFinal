@@ -682,7 +682,7 @@ module main();
     wire[0:5] nextTail = stopFetch ? tail : state ? tail + 2 : tail;
     wire[0:63] pcPlus8 = pc + 8;
     wire[0:63] nextpc = stopFetch ? pc : pcPlus8; //need to advance pc by 8 instead
-    wire[0:63] nextTruePc = canParallel?TruePc+8:TruePc+4;//when do we check state?
+    wire[0:63] nextTruePc = ~state?TruePc:canParallel?TruePc+8:TruePc+4;//when do we check state?
 
     always @(posedge clk) begin
         if((X0isAdd|X0isOr)&X0rc) begin
