@@ -467,8 +467,7 @@ module main();
 
     wire[0:63] X0readva = X0regARXA ? regReadData0 : X0regARXB ? regReadData1 : 0;
 
-    wire[0:63] X0va = (X0vaState == 8) ? WBwriteDataA : (X0vaState == 7) ? WBwriteDataB : (X0vaState == 6) ? WBva : (X0vaState == 5) ? WBvb :
-                (X0vaState == 4) ? oldWBwriteDataA : (X0vaState == 3) ? oldWBwriteDataB : (X0vaState == 2) ? oldWBva : (X0vaState == 1) ? oldWBvb : X0readva;
+    wire[0:63] X0va = (X0vaState == 8) ? WBwriteDataA : (X0vaState == 7) ? WBwriteDataB : (X0vaState == 6) ? WBva : (X0vaState == 5) ? WBvb : (X0vaState == 4) ? oldWBwriteDataA : (X0vaState == 3) ? oldWBwriteDataB : (X0vaState == 2) ? oldWBva : (X0vaState == 1) ? oldWBvb : X0readva;
 
     wire X0regBEQXA = X0regB == XreadA;
     wire X0regBRXA = X0regBEQXA & Xread0;
@@ -721,7 +720,7 @@ module main();
             queue[tail] <= fetch[0:31];
 	end
         oldWBwriteDataB <= WBwriteDataB;
-        oldWBwriteDataA <= WBwriteDataB;
+        oldWBwriteDataA <= WBwriteDataA;
         oldWBvb <= WBvb;
         oldWBva <= WBva;
         WB1inst <= X1inst;
