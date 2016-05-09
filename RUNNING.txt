@@ -1,0 +1,5 @@
+Please include clear and simple instructions for running your project.
+Our project runs in the same manner as the projects p8-pa. To run, provide a .bin file containing PPC machine language and run with the same run instructions from p8-pa.
+
+Explain why your supplied tests illustrate that your project works
+Our project passes hello.bin from p8-pa, which tests the addi and ld instructions.
