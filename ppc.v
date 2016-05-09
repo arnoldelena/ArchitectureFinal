@@ -18,6 +18,8 @@ module main();
     reg[0:31] xer = 0; //0 is SO 
 
     reg state = 0;
+    reg state1 = 0;
+    reg ignore = 0;
     reg[0:63] TruePc = 0;
 
     /********************/
@@ -104,7 +106,7 @@ module main();
 
     // D0
 
-    wire[0:31] D0inst = queue[head];
+    wire[0:31] D0inst = ignore ? 0 : queue[head];
 
     wire[0:5] D0opcode = D0inst[0:5];
     wire[0:4] D0rs = D0inst[6:10];
@@ -154,6 +156,7 @@ module main();
     wire[0:8] D1xop9 = D1inst[22:30];
     wire[0:9] D1xop10 = D1inst[21:30];
     wire[0:9] D1spr = {D1inst[16:20],D0inst[11:15]};
+    
 
     wire D1isOr = (D1opcode == 31) & (D1xop10 == 444);
     wire D1isAdd = (D1opcode == 31) & (D1xop9 == 266);
@@ -185,7 +188,7 @@ module main();
     wire D0ctrOk = D0inst[8]|((ctr-1 != 0)^D0inst[9]);
     wire D1ctrOk = D1inst[8]|((ctr-1 != 0)^D1inst[9]);
 
-    wire [0:3] TrueCr = (X0isAdd|X0isOr) & X0rc?X0newCr: (X1isAdd|X1isOr)&X1rc?X1newCr:cr;
+    wire [0:31] TrueCr = (X1isAdd|X1isOr) & X1rc?X1newCr: (X0isAdd|X0isOr)&X0rc?X0newCr:cr;
     wire D0condOk = D0inst[6]|(TrueCr[D0ra]==D0inst[7]);
     wire D1condOk = D1inst[6]|(TrueCr[D1ra]==D1inst[7]);  
     wire [0:63] D0branchTarget = D0isBc?D0bcTarget:
@@ -198,11 +201,11 @@ module main();
                         0;
 
     //need to do if the parallel instruction sets the cr, then branch in execute stage
-    wire [0:63] D0bTarget = D0inst[30]?{{38{D0inst[6]}},D0inst[6:29],2'b00}:{{33{D0inst[6]}},D0inst[6:29],2'b00}+TruePc;
+    wire [0:63] D0bTarget = D0inst[30]?{{38{D0inst[6]}},D0inst[6:29],2'b00}:{{38{D0inst[6]}},D0inst[6:29],2'b00}+TruePc;
     wire [0:63] D0bclrTarget = {lr[0:61],2'b00};
     wire [0:63] D0bcTarget = D0inst[30]?{{48{D0inst[16]}},D0inst[16:29],2'b00}:{{48{D0inst[16]}},D0inst[16:29],2'b00}+TruePc;
 
-    wire [0:63] D1bTarget = D1inst[30]?{{38{D1inst[6]}},D1inst[6:29],2'b00}:{{33{D1inst[6]}},D1inst[6:29],2'b00}+TruePc+4;
+    wire [0:63] D1bTarget = D1inst[30]?{{38{D1inst[6]}},D1inst[6:29],2'b00}:{{38{D1inst[6]}},D1inst[6:29],2'b00}+TruePc+4;
     wire [0:63] D1bclrTarget = {lr[0:61],2'b00};
     wire [0:63] D1bcTarget = D1inst[30]?{{48{D1inst[16]}},D1inst[16:29],2'b00}:{{48{D1inst[16]}},D1inst[16:29],2'b00}+TruePc+1;
  
@@ -551,22 +554,33 @@ module main();
  
 
     //CR logic
-    wire X0isOv = (X0va[0]==0 && X0vb[0]==0) && (X0result[0]==1)?1:0;
-    wire X0isUv = (X0va[0]==1 && X0vb[0]==1) && (X0result[0]==0)?1:0;
-    wire X1isOv = (X1va[0]==0 && X1vb[0]==0) && (X1result[0]==1)?1:0;
-    wire X1isUv = (X1va[0]==1 && X1vb[0]==1) && (X1result[0]==0)?1:0;
-    
-    wire [0:3] X0newCr; 
-    assign X0newCr[0] = X0result[0]==1?1:0;
-    assign X0newCr[1] = X0result[0]==0 & X0result!=0?1:0;
-    assign X0newCr[2] = X0result == 0;
-    assign X0newCr[3] = X0oe&(X0isOv|X0isUv)?1:xer[0];
-    
-    wire [0:3] X1newCr; 
-    assign X1newCr[0] = X1result[0]==1?1:0;
-    assign X1newCr[1] = X1result[0]==0 & X1result!=0?1:0;
-    assign X1newCr[2] = X1result == 0;
-    assign X1newCr[3] = X1oe&(X1isOv|X1isUv|((X0oe&X0isAdd)&(X0isOv|X0isUv)))?1:xer[0];    
+
+    wire X0lt = X0result[0];
+    wire X0eq = X0result == 0;
+    wire X0gt = ~X0lt & ~X0eq;
+
+    wire X0ov = X0va[0] ^ X0vb[0] ? 0 : X0va[0] ^ X0result[0];
+
+    wire X0so = xer[0];
+    wire X0nextso = X0so | X0ov;
+    wire[0:31] X0nextxer = (X0isAdd & X0oe)?{X0nextso,X0ov,xer[2:31]}:xer;
+
+    wire [0:31] X0newCr = ((X0isAdd | X0isOr) & X0rc) ? {X0lt,X0gt,X0eq,X0nextxer[0],cr[4:31]} : cr; 
+
+    wire X1ov = X1va[0] ^ X1vb[0] ? 0 : X1va[0] ^ X1result[0];
+    wire X1lt = X1result[0];
+    wire X1eq = X1result == 0;
+    wire X1gt = ~X1lt & ~X1eq;
+
+    wire X1so = xer[0];
+    wire X1nextso = X1so | X1ov;
+
+    wire[0:31] X1nextxer = (X1isAdd & X1oe)?{X1nextso,X1ov,X0nextxer[2:31]}:X0nextxer;
+
+ 
+
+    wire [0:31] X1newCr = ((X1isAdd | X1isOr) & X1rc) ? {X1lt,X1gt,X1eq,X1nextxer[0],cr[4:31]} : cr; 
+
     /**************/
     /* Write Back */
     /**************/
@@ -678,21 +692,17 @@ module main();
     /* Update */
     /**********/
 
-    wire stopFetch = !(tail==head) & (head-tail)<=2 & (head-tail)>0;
+    wire stopFetch = !(tail==head) & (head-tail)<=3 & (head-tail)>1;
     wire[0:5] nextHead = (~state|head==tail) ? head : canParallel ? head + 2 : head + 1;
     wire[0:5] nextTail = stopFetch ? tail : state ? tail + 2 : tail;
     wire[0:63] pcPlus8 = pc + 8;
     wire[0:63] nextpc = stopFetch ? pc : pcPlus8; //need to advance pc by 8 instead
-    wire[0:63] nextTruePc = ~state?TruePc:canParallel?TruePc+8:TruePc+4;//when do we check state?
+    wire[0:63] nextTruePc = ~state1?TruePc:canParallel?TruePc+8:TruePc+4;//when do we check state?
 
     always @(posedge clk) begin
-        if((X0isAdd|X0isOr)&X0rc) begin
-            cr[0:3]<= X0newCr;
-        end else if((X1isAdd|X1isOr)&X1rc) begin
-            cr[0:3]<=X1newCr;
-        end
         if(D0isBranching) begin
             state<=0;
+            state1<=0;
             pc<=D0branchTarget;
             TruePc<=D0branchTarget;
             if(D0inst[31]==1) begin
@@ -700,21 +710,32 @@ module main();
             end
         end else if (canParallel & D1isBranching) begin
             state<=0;
+            state1<=0;
             pc<=D1branchTarget;
             TruePc<=D1branchTarget;
             if(D1inst[31]==1)begin
                 lr<=TruePc+8;   //because TruePc holds pc of inst0
             end  
-        end else begin
+        end else begin 
             head <= nextHead;
             tail <= nextTail;
             pc <= nextpc;
             state<=1;
+            state1<=state;
             TruePc<=nextTruePc;
         end
         if(D0isBranching|(D1isBranching&canParallel)) begin
             for(i=0;i<32;i=i+1) begin
                 queue[i]<=0;
+            end
+            if(D0isBranching & D0branchTarget[61]) begin
+                ignore<=1;
+            end
+            else 
+            if(D1isBranching & D1branchTarget[61]) begin
+                ignore<=1;
+            end else begin
+                ignore<=0;
             end
             head<=0;
             tail<=0;
@@ -765,6 +786,8 @@ module main();
         WBwrite1 <= Xwrite1;
         WBread0 <= Xread0;
         WBwrite0 <= Xwrite0;
+        xer<=X1nextxer;
+        cr<=TrueCr;
         if (canParallel) begin
             X1inst <= D1inst;
         end else begin
