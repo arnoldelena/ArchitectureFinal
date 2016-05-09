@@ -271,13 +271,13 @@ module main();
 
     // D1 reads D0 writes
     wire D1readAEQD0writeA = D1readA == D0writeA;
-    wire D1readAUD0writeA = D1readAEQXwriteA & D0write0;
-    wire D1readAEQD0QXwriteB = D1readB == D0writeB;
-    wire D1readAUD0writeB = D1readAEQXwriteB & D0write1;
+    wire D1readAUD0writeA = D1readAEQD0writeA & D0write0 & D1read0;
+    wire D1readAEQD0writeB = D1readB == D0writeB;
+    wire D1readAUD0writeB = D1readAEQD0writeB & D0write1 & D1read0;
     wire D1readBEQD0writeA = D1readB == D0writeA;
-    wire D1readBUD0writeA = D1readBEQD0writeA & D0write0;
+    wire D1readBUD0writeA = D1readBEQD0writeA & D0write0 & D1read1;
     wire D1readBEQD0writeB = D1readB == D0writeB;
-    wire D1readBUD0writeB = D1readBEQD0writeB & D0write1;  
+    wire D1readBUD0writeB = D1readBEQD0writeB & D0write1 & D1read1;  
 
     wire D1read0D0write = (D1readAUD0writeA | D1readAUD0writeB);
     wire D1read1D0write = (D1readBUD0writeA | D1readBUD0writeB);
@@ -350,11 +350,11 @@ module main();
     wire D1noRead0 = D1read0D0write | D1read0D0read | D1read0Xwrite | D1read0Xread | D1read0WBwrite | D1read0WBread;
     wire D1noRead1 = D1read1D0write | D1read1D0read | D1read1Xwrite | D1read1Xread | D1read1WBwrite | D1read1WBread | (D1read0 & (D1readA == D1readB));
 
-    wire[0:2] readNum = (D0read0 & ~D0noRead0) + (D0read1 & ~D0noRead1) + (D1read0 & ~D1noRead0) + (D1read1 & ~D1noRead1);
+    wire[0:3] readNum = (D0read0 & ~D0noRead0) + (D0read1 & ~D0noRead1) + (D1read0 & ~D1noRead0) + (D1read1 & ~D1noRead1);
 
     wire canParallelReadRegs = readNum < 3;
 
-    wire[0:1] readNumParallel = (D0read0 & ~D0noRead0) + (D0read1 & ~D0noRead1) + (D1read0 & ~D1noRead0 & canParallel) + (D1read1 & ~D1noRead1 & canParallel);
+    wire[0:3] readNumParallel = (D0read0 & ~D0noRead0) + (D0read1 & ~D0noRead1) + (D1read0 & ~D1noRead0 & canParallel) + (D1read1 & ~D1noRead1 & canParallel);
 
     wire Dread0 = readNumParallel > 0;
     wire[0:4] DreadA = ~D0noRead0 ? D0readA : ~D0noRead1 ? D0readB : (~D1noRead0 & canParallel) ? D1readA : (~D1noRead1 & canParallel) ? D1readB : 0;
@@ -404,8 +404,8 @@ module main();
     wire[0:3] D1vaState = D1readAUD0writeA ? 10 : D1readAUD0writeB ? 9 : D1readAUXwriteA ? 8 : D1readAUXwriteB ? 7 : D1readARXreadA ? 6 : D1readARXreadB ? 5 : D1readAUWBwriteA ? 4 : D1readAUWBwriteB ? 3 : D1readARWBreadA ? 2 : D1readARWBreadB ? 1 : 0;
     wire[0:3] D1vbState = D1readBUD0writeA ? 10 : D1readBUD0writeB ? 9 : D1readBUXwriteA ? 8 : D1readBUXwriteB ? 7 : D1readBRXreadA ? 6 : D1readBRXreadB ? 5 : D1readBUWBwriteA ? 4 : D1readBUWBwriteB ? 3 : D1readBRWBreadA ? 2 : D1readBRWBreadB ? 1 : 0;
 
-    wire canParallel = canParallelReadRegs & canParallelWriteRegs & ~specHazard;
-    wire specHazard = (D1isAdd | D1isOr) & D1inst[31] & ((D1vaState == 10) | (D1vaState == 9) | (D1vbState == 10) | (D1vbState == 9));
+    wire canParallel = canParallelReadRegs & canParallelWriteRegs & ~specHazard & ~D0isBranching;
+    wire specHazard = ((D1isAdd | D1isOr) & D1inst[31] & ((D1vaState == 10) | (D1vaState == 9) | (D1vbState == 10) | (D1vbState == 9))) | ((D0isAdd|D0isOr)&D0inst[31]&(D1isBc|D1isBclr));
 
     /************/
     /* Execute */
@@ -698,7 +698,7 @@ module main();
             if(D0inst[31]==1) begin
                 lr<=TruePc+4;
             end
-        end else if (D1isBranching) begin
+        end else if (canParallel & D1isBranching) begin
             state<=0;
             pc<=D1branchTarget;
             TruePc<=D1branchTarget;
@@ -712,7 +712,7 @@ module main();
             state<=1;
             TruePc<=nextTruePc;
         end
-        if(D0isBranching|D1isBranching) begin
+        if(D0isBranching|(D1isBranching&canParallel)) begin
             for(i=0;i<32;i=i+1) begin
                 queue[i]<=0;
             end
