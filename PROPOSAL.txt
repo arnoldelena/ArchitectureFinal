@@ -1,0 +1,7 @@
+Team members:
+Elena Arnold
+Lucy Liu
+Seth Taylor
+
+Proposal:
+	I'd like to work with Elena and Lucy to make a processor in verilog that can run multiple instructions in parallel. This would be an extension of projects 8-10, so we would only implement all of the instructions that were given in project 10.
