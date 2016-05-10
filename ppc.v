@@ -215,8 +215,8 @@ module main();
     wire [0:63] D0bcTarget = D0aa?D0bd:D0bd+TruePc;
 
     wire [0:63] D1bTarget = D1aa?D1li:D1li+TruePc+4;
-    wire [0:63] D1bclrTarget = (D0isB|D0isBc|D0isBclr)&(D0inst[31])?TruePc+4:{lr[0:61],2'b00};
-    wire [0:63] D1bcTarget = D1aa?D1bd:D1bd+TruePc+4;
+    wire [0:63] D1bclrTarget = (D1isB|D1isBc|D1isBclr)&(D1inst[31])?TruePc+4:{lr[0:61],2'b00};
+    wire [0:63] D1bcTarget = D1aa ?D1bd: D0inst==0?D1bd+TruePc:D1bd+TruePc+4;
  
     // Data Hazard/Forwarding??
 
@@ -377,20 +377,20 @@ module main();
     // D0 writes D1 writes
     //checks that both are writing now
     wire D0writeAEQD1writeA = D0writeA == D1writeA;
-    wire D0writeAUD1writeA = D0writeAEQD1writeA & D1write0 & D0write0;
+    wire D0writeAUD1writeA = D0writeAEQD1writeA & D1write0;
     wire D0writeAEQD1writeB = D0writeA == D1writeB;
-    wire D0writeAUD1writeB = D0writeAEQD1writeB & D1write1 & D0write0;
+    wire D0writeAUD1writeB = D0writeAEQD1writeB & D1write1;
     wire D0writeBEQD1writeA = D0writeB == D1writeA;
-    wire D0writeBUD1writeA = D0writeBEQD1writeA & D1write0 & D0write1;
+    wire D0writeBUD1writeA = D0writeBEQD1writeA & D1write0;
     wire D0writeBEQD1writeB = D0writeB == D1writeB;
-    wire D0writeBUD1writeB = D0writeBEQD1writeB & D1write1 & D0write1;
+    wire D0writeBUD1writeB = D0writeBEQD1writeB & D1write1;
 
     wire D0write0D1write = (D0writeAUD1writeA | D0writeAUD1writeB);
     wire D0write1D1write = (D0writeBUD1writeA | D0writeBUD1writeB);
 
 //got was double negative, made it D0write0D1write instead of ~D0write0D1write
-    wire D0noWrite0 = D0write0D1write;
-    wire D0noWrite1 = D0write1D1write;
+    wire D0noWrite0 = D0write0D1write & canParallel;
+    wire D0noWrite1 = D0write1D1write & canParallel;
 
 //changed these wire sizes to 4 bits instead of 1/2
     wire[0:3] writeNum = (D0write0 & ~D0noWrite0) + (D0write1 & ~D0noWrite1) + D1write0 + D1write1;
@@ -404,7 +404,7 @@ module main();
 
 //changed to ==2 instead of >1
     wire Dwrite1 = writeNumParallel == 2;
-    wire[0:4] DwriteB = (canParallel & D1write1 & D1write0) ? D1writeA : (canParallel & D1write1 & D0write1) ? D0writeB : (canParallel & D1write1 & D0write0) ? D0writeA : (canParallel & D1write0 & D0write1) ? D0writeB : (canParallel & D1write0 & D0write0) ? D0writeA : D1write1 & D1write0 ? DwriteA : 0;
+    wire[0:4] DwriteB = (canParallel & D1write1 & D1write0) ? D1writeA : (canParallel & D1write1 & D0write1) ? D0writeB : (canParallel & D1write1 & D0write0) ? D0writeA : (canParallel & D1write0 & D0write1) ? D0writeB : (canParallel & D1write0 & D0write0) ? D0writeA : D0isLdu?D0writeA: D1write1 & D1write0 ? DwriteA : 0;
 
     // State logic
 
