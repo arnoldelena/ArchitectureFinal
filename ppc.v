@@ -21,6 +21,7 @@ module main();
     reg state1 = 0;
     reg weight = 0;
     reg ignore = 0;
+    reg ignore1 = 0;
     reg[0:63] TruePc = 0;
 
     /********************/
@@ -84,13 +85,13 @@ module main();
        regWriteData1
     );
 
-    reg[0:31] queue [0:31];
+    reg[0:31] queue [0:64];
     reg[0:5] tail = 0;
     reg[0:5] head = 0;
 
     integer i;
     initial begin 
-        for(i=0;i<32;i=i+1) begin
+        for(i=0;i<64;i=i+1) begin
             queue[i]<=0;
         end
     end
@@ -118,6 +119,9 @@ module main();
     wire[0:8] D0xop9 = D0inst[22:30];
     wire[0:9] D0xop10 = D0inst[21:30];
     wire[0:9] D0spr = {D0inst[16:20],D0inst[11:15]};
+    wire D0aa = D0inst[30];
+    wire[0:63] D0li = {{38{D0inst[6]}},D0inst[6:29],2'b00};
+    wire[0:63] D0bd = {{48{D0inst[16]}},D0inst[16:29],2'b00};
 
     wire D0isOr = (D0opcode == 31) & (D0xop10 == 444);
     wire D0isAdd = (D0opcode == 31) & (D0xop9 == 266);
@@ -157,7 +161,11 @@ module main();
     wire[0:8] D1xop9 = D1inst[22:30];
     wire[0:9] D1xop10 = D1inst[21:30];
     wire[0:9] D1spr = {D1inst[16:20],D0inst[11:15]};
-    
+    wire D1aa = D1inst[30];
+    wire[0:63] D1li = {{38{D1inst[6]}},D1inst[6:29],2'b00};
+    wire[0:63] D1bd = {{48{D1inst[16]}},D1inst[16:29],2'b00};
+
+   
 
     wire D1isOr = (D1opcode == 31) & (D1xop10 == 444);
     wire D1isAdd = (D1opcode == 31) & (D1xop9 == 266);
@@ -202,13 +210,13 @@ module main();
                         0;
 
     //need to do if the parallel instruction sets the cr, then branch in execute stage
-    wire [0:63] D0bTarget = D0inst[30]?{{38{D0inst[6]}},D0inst[6:29],2'b00}:{{38{D0inst[6]}},D0inst[6:29],2'b00}+TruePc;
+    wire [0:63] D0bTarget = D0aa?D0li:D0li+TruePc;
     wire [0:63] D0bclrTarget = {lr[0:61],2'b00};
-    wire [0:63] D0bcTarget = D0inst[30]?{{48{D0inst[16]}},D0inst[16:29],2'b00}:{{48{D0inst[16]}},D0inst[16:29],2'b00}+TruePc;
+    wire [0:63] D0bcTarget = D0aa?D0bd:D0bd+TruePc;
 
-    wire [0:63] D1bTarget = D1inst[30]?{{38{D1inst[6]}},D1inst[6:29],2'b00}:{{38{D1inst[6]}},D1inst[6:29],2'b00}+TruePc+4;
-    wire [0:63] D1bclrTarget = {lr[0:61],2'b00};
-    wire [0:63] D1bcTarget = D1inst[30]?{{48{D1inst[16]}},D1inst[16:29],2'b00}:{{48{D1inst[16]}},D1inst[16:29],2'b00}+TruePc;
+    wire [0:63] D1bTarget = D1aa?D1li:D1li+TruePc+4;
+    wire [0:63] D1bclrTarget = (D0isB|D0isBc|D0isBclr)&(D0inst[31])?TruePc+4:{lr[0:61],2'b00};
+    wire [0:63] D1bcTarget = D1aa?D1bd:D1bd+TruePc+4;
  
     // Data Hazard/Forwarding??
 
@@ -698,7 +706,7 @@ module main();
     wire[0:5] nextTail = stopFetch ? tail : state ? tail + 2 : tail;
     wire[0:63] pcPlus8 = pc + 8;
     wire[0:63] nextpc = stopFetch ? pc : pcPlus8; //need to advance pc by 8 instead
-    wire[0:63] nextTruePc = ~state1?TruePc:canParallel?TruePc+8:TruePc+4;//when do we check state?
+    wire[0:63] nextTruePc = ~state1?TruePc:(canParallel & ~ignore1)?TruePc+8:TruePc+4;//when do we check state?
 
     always @(posedge clk) begin
         if(D0isBranching) begin
@@ -716,6 +724,7 @@ module main();
             tail <= nextTail;
             pc <= nextpc;
             weight<=0;
+            ignore1<=ignore;
             ignore <= weight;
             state<=1;
             state1<=state;
@@ -735,14 +744,17 @@ module main();
             if(D0isBranching & D0branchTarget[61]) begin
                 weight<=1;
                 ignore<=1;
+                ignore1<=1;
             end
             else 
             if(D1isBranching & D1branchTarget[61]) begin
                 weight<=1;
                 ignore<=1;
+                ignore1<=1;
             end else begin
                 weight<=0;
                 ignore<=0;
+                ignore1<=0;
             end
             head<=0;
             tail<=0;

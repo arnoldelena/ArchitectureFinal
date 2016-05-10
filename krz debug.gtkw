@@ -1,28 +1,47 @@
 [*]
 [*] GTKWave Analyzer v3.3.58 (w)1999-2014 BSI
-[*] Mon May  9 05:09:54 2016
+[*] Mon May  9 23:49:27 2016
 [*]
-[dumpfile] "/v/filer4b/v38q001/elena/Desktop/ArchitectureFinal/krztest.vcd"
-[dumpfile_mtime] "Mon May  9 05:09:22 2016"
-[dumpfile_size] 2045971
+[dumpfile] "/v/filer4b/v38q001/elena/Architecture/public_cs429h_s16_p8_tests/f033b96c734c15371dc2e320a11da0ad47efb025.vcd"
+[dumpfile_mtime] "Mon May  9 23:39:05 2016"
+[dumpfile_size] 127456
 [savefile] "/v/filer4b/v38q001/elena/Desktop/ArchitectureFinal/krz debug.gtkw"
-[timestart] 0
+[timestart] 40
 [size] 1000 600
-[pos] 21 22
-*-1.000000 0 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[pos] -1 -1
+*-1.000000 43 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [sst_width] 210
-[signals_width] 134
+[signals_width] 182
 [sst_expanded] 1
 [sst_vpaned_height] 151
-@23
-main.pc[0:63]
 @22
+main.pc[0:63]
 main.TruePc[0:63]
+main.nextTruePc[0:63]
 main.D0inst[0:31]
 main.D1inst[0:31]
 main.X0inst[0:31]
 main.X1inst[0:31]
+@23
 main.WB0inst[0:31]
+@22
 main.WB1inst[0:31]
+@28
+main.regWriteEn0
+@22
+main.regWriteAddr0[0:4]
+main.regWriteData0[0:63]
+@28
+main.regWriteEn1
+@22
+main.regWriteAddr1[0:4]
+@24
+main.regWriteData1[0:63]
+@22
+main.lr[0:63]
+@28
+main.D0isB
+main.canParallel
+main.ignore
 [pattern_trace] 1
 [pattern_trace] 0
