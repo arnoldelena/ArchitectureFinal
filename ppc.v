@@ -214,7 +214,7 @@ module main();
     wire [0:63] D0bclrTarget = {lr[0:61],2'b00};
     wire [0:63] D0bcTarget = D0aa?D0bd:D0bd+TruePc;
 
-    wire [0:63] D1bTarget = D1aa?D1li:D1li+TruePc+4;
+    wire [0:63] D1bTarget = D1aa?D1li: D0inst==0?D1li+TruePc:D1li+TruePc+4;
     wire [0:63] D1bclrTarget = (D1isB|D1isBc|D1isBclr)&(D1inst[31])?TruePc+4:{lr[0:61],2'b00};
     wire [0:63] D1bcTarget = D1aa ?D1bd: D0inst==0?D1bd+TruePc:D1bd+TruePc+4;
  
@@ -747,7 +747,7 @@ module main();
                 ignore1<=1;
             end
             else 
-            if(D1isBranching & D1branchTarget[61]) begin
+            if(D1isBranching & D1branchTarget[61] & ~D0isBranching) begin
                 weight<=1;
                 ignore<=1;
                 ignore1<=1;
