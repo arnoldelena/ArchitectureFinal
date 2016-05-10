@@ -3,3 +3,4 @@ Our project runs in the same manner as the projects p8-pa. To run, provide a .bi
 
 Explain why your supplied tests illustrate that your project works
 Our project passes hello.bin from p8-pa, which tests the addi and ld instructions.
+UPDATE: Our project was tested against and passes the vast majority of student-submitted tests for p8, so it is expected that many edge cases are accounted for. It passes the benchmark tests for p8, such as hello, Souvik's test, etc.

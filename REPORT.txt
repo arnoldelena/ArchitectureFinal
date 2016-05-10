@@ -1,13 +1,14 @@
 Contribution of each team member:
 Seth - data hazard logic, pipelining, forwarding logic
 Lucy - data hazard logic, cleanup, assisted in debugging
-Elena - data hazard logic, debugging
+Elena - data hazard logic, debugging, branching
 
 What did you propose to do?
 Modify the processor from pa to be able to run instructions in parallel.
 
 what did you actually do?
-Created a modified superscalar processor with a limited instruction set, using code from pa as a base. Implements the instruction set from p8 (add, addi, or, ld, ldu). Passes the given test hello.bin for pa in 13 cycles. 
+Created a modified superscalar processor with a limited instruction set, using code from pa as a base. Implements the instruction set from p8 (add, addi, or, ld, ldu). Passes the given test hello.bin for pa in 13 cycles.
+UPDATE: Implements branching, passes the vast majority of the student-submitted p8 tests. 
 
 What was difficult?
 The logic needed to account for data hazards and to manage forwarding was easily the longest and most complex part of this project. Debugging this section was particularly difficult due to the repetitive logic in many areas leading to easy typos, and the complexity of the many edge cases needing to be accounted for.
