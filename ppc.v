@@ -122,6 +122,8 @@ module main();
     wire D0aa = D0inst[30];
     wire[0:63] D0li = {{38{D0inst[6]}},D0inst[6:29],2'b00};
     wire[0:63] D0bd = {{48{D0inst[16]}},D0inst[16:29],2'b00};
+    wire[0:4] D0bo = D0inst[6:10];
+    wire[0:4] D0bi = D0inst[11:15];
 
     wire D0isOr = (D0opcode == 31) & (D0xop10 == 444);
     wire D0isAdd = (D0opcode == 31) & (D0xop9 == 266);
@@ -164,8 +166,8 @@ module main();
     wire D1aa = D1inst[30];
     wire[0:63] D1li = {{38{D1inst[6]}},D1inst[6:29],2'b00};
     wire[0:63] D1bd = {{48{D1inst[16]}},D1inst[16:29],2'b00};
-
-   
+    wire[0:4] D1bo = D1inst[6:10];
+    wire[0:4] D1bi = D1inst[11:15]; 
 
     wire D1isOr = (D1opcode == 31) & (D1xop10 == 444);
     wire D1isAdd = (D1opcode == 31) & (D1xop9 == 266);
@@ -194,12 +196,12 @@ module main();
 
     wire D0isBranching = D0isB|((D0isBc|D0isBclr) & D0ctrOk & D0condOk); 
     wire D1isBranching = D1isB|((D1isBc|D1isBclr) & D1ctrOk & D1condOk);
-    wire D0ctrOk = D0inst[8]|((ctr-1 != 0)^D0inst[9]);
-    wire D1ctrOk = D1inst[8]|((ctr-1 != 0)^D1inst[9]);
+    wire D0ctrOk = D0bo[2]|((ctr-1 != 0)^D0bo[3]);
+    wire D1ctrOk = D1bo[2]|((ctr-1 != 0)^D1bo[3]);
 
     wire [0:31] TrueCr = (X1isAdd|X1isOr) & X1rc?X1newCr: (X0isAdd|X0isOr)&X0rc?X0newCr:cr;
-    wire D0condOk = D0inst[6]|(TrueCr[D0ra]==D0inst[7]);
-    wire D1condOk = D1inst[6]|(TrueCr[D1ra]==D1inst[7]);  
+    wire D0condOk = D0bo[0]|(TrueCr[D0bi]==D0bo[1]);
+    wire D1condOk = D1bo[0]|(TrueCr[D1bi]==D1bo[1]);  
     wire [0:63] D0branchTarget = D0isBc?D0bcTarget:
                         D0isB?D0bTarget:
                         D0isBclr?D0bclrTarget:
@@ -417,7 +419,7 @@ module main();
     wire[0:3] D1vbState = D1readBUD0writeA ? 10 : D1readBUD0writeB ? 9 : D1readBUXwriteA ? 8 : D1readBUXwriteB ? 7 : D1readBRXreadA ? 6 : D1readBRXreadB ? 5 : D1readBUWBwriteA ? 4 : D1readBUWBwriteB ? 3 : D1readBRWBreadA ? 2 : D1readBRWBreadB ? 1 : 0;
 
     wire canParallel = canParallelReadRegs & canParallelWriteRegs & ~specHazard & ~D0isBranching;
-    wire specHazard = ((D1isAdd | D1isOr) & D1inst[31] & ((D1vaState == 10) | (D1vaState == 9) | (D1vbState == 10) | (D1vbState == 9))) | ((D0isAdd|D0isOr)&D0inst[31]&(D1isBc|D1isBclr))|((D0isLd|D0isLdu)&(D1isLd|D1isLdu)) | ((D1isLd|D1isLdu) & ((D1vaState == 10) | (D1vaState == 9) | (D1vbState == 10) | (D1vbState == 9)));
+    wire specHazard = (((D1isAdd & (D1inst[31] | D1inst[21])) | (D1isOr & D1inst[31]))  & ((D1vaState == 10) | (D1vaState == 9) | (D1vbState == 10) | (D1vbState == 9))) | ((D0isAdd|D0isOr)&D0inst[31]&(D1isBc|D1isBclr))|((D0isLd|D0isLdu)&(D1isLd|D1isLdu)) | ((D1isLd|D1isLdu) & ((D1vaState == 10) | (D1vaState == 9) | (D1vbState == 10) | (D1vbState == 9)));
 
     /************/
     /* Execute */
@@ -733,7 +735,11 @@ module main();
 
         //can we run two branches at same time?
         if((D1isB|D1isBc|D1isBclr) & D1inst[31] & canParallel) begin
-            lr<=TruePc+8;
+            if(D0inst==0) begin
+                lr<=TruePc+4;
+            end else begin
+                lr<=TruePc+8;
+            end
         end else if((D0isB|D0isBc|D0isBclr) & D0inst[31]) begin
             lr<=TruePc+4;
         end
